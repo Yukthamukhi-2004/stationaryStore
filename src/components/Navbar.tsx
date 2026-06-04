@@ -8,7 +8,7 @@ export default function Navbar() {
     <nav className="navbar">
       <div className="navbar-container">
         <Link to="/" className="navbar-brand">
-          Stationery
+          Store
         </Link>
 
         <div className="navbar-links">
@@ -19,11 +19,7 @@ export default function Navbar() {
             <>
               <Link to="/profile" className="nav-link nav-profile">
                 {user?.imageUrl ? (
-                  <img
-                    src={user.imageUrl}
-                    alt=""
-                    className="nav-avatar"
-                  />
+                  <img src={user.imageUrl} alt="" className="nav-avatar" />
                 ) : (
                   <span className="nav-avatar-placeholder">
                     {user?.firstName?.charAt(0) ?? "U"}
