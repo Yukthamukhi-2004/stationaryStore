@@ -1,17 +1,22 @@
-export type Profile = {
-  id: string;
-  clerk_id: string;
-  email: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  avatar_url: string | null;
-  role: "customer" | "admin";
-  created_at: string;
-  updated_at: string;
-};
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "./database.types";
 
-export function getAuthenticatedSupabase(_token: string) {
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
-    "Supabase client not configured yet. Database integration pending."
+    "Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY environment variables.",
   );
+}
+
+const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+
+export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+
+export function getAuthenticatedSupabase(
+  token: string,
+): SupabaseClient<Database> {
+  supabase.auth.setSession({ access_token: token, refresh_token: "" });
+  return supabase;
 }
