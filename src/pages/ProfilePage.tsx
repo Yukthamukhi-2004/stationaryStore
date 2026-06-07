@@ -19,7 +19,7 @@ export default function ProfilePage() {
       console.log("USER:", user);
 
       try {
-        const token = await getToken();
+        const token = await getToken({ template: "supabase" });
         console.log("TOKEN:", token);
         console.log("USER:", user);
         if (!token || !user) return;
