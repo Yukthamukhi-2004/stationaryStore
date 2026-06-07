@@ -1,45 +1,48 @@
-import { Link } from "react-router-dom";
-import { useUser } from "@clerk/clerk-react";
+import { Link, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
 
 export default function Navbar() {
-  const { isSignedIn, user, isLoaded } = useUser();
+  const { pathname } = useLocation();
+
+  const isActive = (path: string) => pathname === path;
 
   return (
-    <nav className="navbar">
+    <motion.nav
+      className="navbar"
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
       <div className="navbar-container">
         <Link to="/" className="navbar-brand">
-          Stationary
+          <motion.span
+            className="brand-icon"
+            whileHover={{ rotate: 180 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
+          >
+            ✦
+          </motion.span>
+          <span className="brand-text">Stationery</span>
         </Link>
 
         <div className="navbar-links">
-          <Link to="/" className="nav-link">
+          <Link
+            to="/"
+            className={`nav-link ${isActive("/") ? "active" : ""}`}
+          >
             Home
           </Link>
-          {!isLoaded ? null : isSignedIn ? (
-            <>
-              <Link to="/profile" className="nav-link nav-profile">
-                {user?.imageUrl ? (
-                  <img src={user.imageUrl} alt="" className="nav-avatar" />
-                ) : (
-                  <span className="nav-avatar-placeholder">
-                    {user?.firstName?.charAt(0) ?? "U"}
-                  </span>
-                )}
-                <span>{user?.firstName}</span>
-              </Link>
-            </>
-          ) : (
-            <>
-              <Link to="/sign-in" className="nav-link">
-                Sign In
-              </Link>
-              <Link to="/sign-up" className="btn btn-primary btn-sm">
-                Sign Up
-              </Link>
-            </>
-          )}
+          <Link
+            to="/profile"
+            className={`nav-link ${isActive("/profile") ? "active" : ""}`}
+          >
+            Profile
+          </Link>
+          <Link to="/auth" className="btn btn-primary btn-sm">
+            Get Started
+          </Link>
         </div>
       </div>
-    </nav>
+    </motion.nav>
   );
 }
