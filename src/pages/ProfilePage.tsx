@@ -1,58 +1,20 @@
-import { useUser, useAuth, SignOutButton } from "@clerk/clerk-react";
+import { useUser, SignOutButton } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
-import { getAuthenticatedSupabase, type Profile } from "../lib/supabase";
 import { Link } from "react-router-dom";
+type Profile = {
+  role: string;
+  created_at: string;
+};
 
 export default function ProfilePage() {
   const { user, isLoaded } = useUser();
-  const { getToken } = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadProfile() {
-      console.log("LOAD PROFILE STARTED");
-      
-      const token = await getToken();
-      console.log("TOKEN:", token);
-      console.log("USER:", user);
-
-      try {
-        const token = await getToken();
-        console.log("TOKEN:", token);
-        console.log("USER:", user);
-        if (!token || !user) return;
-
-        const supabase = getAuthenticatedSupabase(token);
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("clerk_id", user.id)
-          .single();
-
-        if (error && error.code !== "PGRST116") {
-          // PGRST116 = no rows found (profile not synced yet)
-          setError(error.message);
-        } else {
-          setProfile(data);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load profile");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    console.log("ISLOADED:", isLoaded);
-    console.log("USER OUTSIDE:", user);
-    
-    if (isLoaded && user) {
-      console.log("CALLING LOADPROFILE");
-      loadProfile();
-    }
-
-  }, [isLoaded, user, getToken]);
+    setLoading(false);
+  }, []);
 
   if (!isLoaded) {
     return <div className="page-loading">Loading...</div>;
