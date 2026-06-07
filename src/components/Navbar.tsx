@@ -26,11 +26,8 @@ export default function Navbar() {
         </Link>
 
         <div className="navbar-links">
-          <Link
-            to="/"
-            className={`nav-link ${isActive("/") ? "active" : ""}`}
-          >
-            Home
+          <Link to="/" className={`nav-link ${isActive("/") ? "active" : ""}`}>
+            Menu
           </Link>
           <Link
             to="/profile"
