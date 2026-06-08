@@ -50,9 +50,10 @@ export default function AuthPage() {
         
         navigate("/profile");
       }
-    } catch (err) {
-      console.error("Sign in error:", err);
-      alert("Invalid email or password");
+    } 
+    catch (err: any) {
+      console.error("FULL ERROR:", JSON.stringify(err, null, 2));
+      alert(JSON.stringify(err, null, 2));
     } finally {
       setIsSubmitting(false);
     }
