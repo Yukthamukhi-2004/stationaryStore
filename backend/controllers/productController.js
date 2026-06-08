@@ -8,6 +8,25 @@ const getProducts = async (req, res) => {
   }
   res.json(data);
 };
+const getProductById = async (req, res) => {
+
+  const { id } = req.params;
+
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    return res.status(500).json({
+      error: error.message
+    });
+  }
+
+  res.json(data);
+};
+
 const createProduct = async (req, res) => {
 
   const {
@@ -44,16 +63,62 @@ const createProduct = async (req, res) => {
     product: data
   });
 };
-const updateProduct = (req, res) => {
+const updateProduct = async (req, res) => {
+
+  const { id } = req.params;
+
+  const {
+    category_id,
+    product_name,
+    description,
+    price,
+    stock_quantity,
+    image_url
+  } = req.body;
+
+  const { data, error } = await supabase
+    .from("products")
+    .update({
+      category_id,
+      product_name,
+      description,
+      price,
+      stock_quantity,
+      image_url
+    })
+    .eq("id", id)
+    .select();
+
+  if (error) {
+    return res.status(500).json({
+      error: error.message
+    });
+  }
+
   res.json({
-    message: `Update Product ${req.params.id}`
+    message: "Product Updated Successfully",
+    product: data
   });
 };
-const deleteProduct = (req, res) => {
+const deleteProduct = async (req, res) => {
+
+  const { id } = req.params;
+
+  const { error } = await supabase
+    .from("products")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    return res.status(500).json({
+      error: error.message
+    });
+  }
+
   res.json({
-    message: `Delete Product ${req.params.id}`
+    message: "Product Deleted Successfully"
   });
 };
 module.exports = {
-  getProducts,createProduct,updateProduct,deleteProduct
+  getProducts,getProductById,createProduct,updateProduct,deleteProduct
 };
