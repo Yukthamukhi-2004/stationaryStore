@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSignIn, useSignUp } from "@clerk/clerk-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
 type AuthMode = "sign-in" | "sign-up";
@@ -21,6 +22,8 @@ const staggerVariants: Variants = {
 
 export default function AuthPage() {
   const navigate = useNavigate();
+  const { signIn, setActive: setSignInActive } = useSignIn();
+  const { signUp, setActive: setSignUpActive } = useSignUp();
   const [mode, setMode] = useState<AuthMode>("sign-in");
 
   const [signInEmail, setSignInEmail] = useState("");
@@ -31,20 +34,56 @@ export default function AuthPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => {
-      navigate("/profile");
-    }, 400);
+    
+    try {
+      const result = await signIn?.create({
+        identifier: signInEmail,
+        password: signInPassword,
+      });
+      if (result?.status === "complete") {
+        await setSignInActive?.({
+          session: result.createdSessionId,
+        });
+        
+        navigate("/profile");
+      }
+    } catch (err) {
+      console.error("Sign in error:", err);
+      alert("Invalid email or password");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => {
-      navigate("/profile");
-    }, 400);
+    
+    try {
+      const result = await signUp?.create({
+        emailAddress: signUpEmail,
+        password: signUpPassword,
+      });
+      
+      if (result?.status === "complete") {
+        await setSignUpActive?.({
+          session: result.createdSessionId,
+        });
+        
+        navigate("/profile");
+      } else {
+        console.log("SIGNUP RESULT:", result);
+        alert(JSON.stringify(result, null, 2));
+      }
+    } catch (err) {
+      console.error("Sign up error:", err);
+      alert("Could not create account");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const toggleMode = () => {
