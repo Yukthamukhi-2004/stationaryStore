@@ -8,6 +8,21 @@ const getProducts = async (req, res) => {
   }
   res.json(data);
 };
+
+const getProduct = async (req, res) => {
+  const { id } = req.params;
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    return res.status(404).json({ error: "Product not found" });
+  }
+
+  res.json(data);
+};
 const createProduct = async (req, res) => {
 
   const {
@@ -55,5 +70,9 @@ const deleteProduct = (req, res) => {
   });
 };
 module.exports = {
-  getProducts,createProduct,updateProduct,deleteProduct
+  getProducts,
+  getProduct,
+  createProduct,
+  updateProduct,
+  deleteProduct
 };
