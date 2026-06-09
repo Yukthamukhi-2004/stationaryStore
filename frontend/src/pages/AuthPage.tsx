@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSignIn, useSignUp } from "@clerk/clerk-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
 type AuthMode = "sign-in" | "sign-up";
@@ -30,25 +31,74 @@ export default function AuthPage() {
   const [signUpPassword, setSignUpPassword] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const { isLoaded: signInLoaded, signIn, setActive: setSignInActive } = useSignIn();
+  const { isLoaded: signUpLoaded, signUp, setActive: setSignUpActive } = useSignUp();
+
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!signInLoaded || !signIn) return;
     setIsSubmitting(true);
-    setTimeout(() => {
-      navigate("/profile");
-    }, 400);
+    setErrorMessage(null);
+
+    try {
+      const result = await signIn.create({
+        identifier: signInEmail,
+        password: signInPassword,
+      });
+
+      if (result.status === "complete") {
+        await setSignInActive({ session: result.createdSessionId });
+        navigate("/profile");
+      } else {
+        setErrorMessage("Sign-in requires additional verification.");
+      }
+    } catch (err: unknown) {
+      const clerkErr = err as { errors?: Array<{ message: string }> };
+      setErrorMessage(
+        clerkErr?.errors?.[0]?.message ?? "Sign-in failed. Please try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!signUpLoaded || !signUp) return;
     setIsSubmitting(true);
-    setTimeout(() => {
-      navigate("/profile");
-    }, 400);
+    setErrorMessage(null);
+
+    try {
+      const result = await signUp.create({
+        firstName: signUpName.split(" ")[0] || signUpName,
+        lastName: signUpName.split(" ").slice(1).join(" ") || "",
+        emailAddress: signUpEmail,
+        password: signUpPassword,
+      });
+
+      if (result.status === "complete") {
+        await setSignUpActive({ session: result.createdSessionId });
+        navigate("/profile");
+      } else if (result.status === "missing_fields") {
+        setErrorMessage("Please fill in all required fields.");
+      } else {
+        setErrorMessage("Sign-up requires additional verification. Check your email.");
+      }
+    } catch (err: unknown) {
+      const clerkErr = err as { errors?: Array<{ message: string }> };
+      setErrorMessage(
+        clerkErr?.errors?.[0]?.message ?? "Sign-up failed. Please try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const toggleMode = () => {
     setMode((prev) => (prev === "sign-in" ? "sign-up" : "sign-in"));
+    setErrorMessage(null);
   };
 
   return (
@@ -94,6 +144,24 @@ export default function AuthPage() {
 
           {/* Animated Form Container */}
           <div className="auth-form-container">
+            {errorMessage && (
+              <motion.div
+                className="auth-error"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={{
+                  background: "#fef2f2",
+                  color: "#b91c1c",
+                  padding: "0.6rem 0.9rem",
+                  borderRadius: "var(--radius-md)",
+                  fontSize: "0.85rem",
+                  marginBottom: "1rem",
+                  textAlign: "center",
+                }}
+              >
+                {errorMessage}
+              </motion.div>
+            )}
             <AnimatePresence mode="wait">
               {mode === "sign-in" ? (
                 <motion.form
@@ -158,7 +226,7 @@ export default function AuthPage() {
                     transition={{ delay: 0.15 }}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.97 }}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !signInLoaded}
                   >
                     {isSubmitting ? (
                       <motion.span
@@ -255,7 +323,7 @@ export default function AuthPage() {
                     transition={{ delay: 0.2 }}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.97 }}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !signUpLoaded}
                   >
                     {isSubmitting ? (
                       <motion.span

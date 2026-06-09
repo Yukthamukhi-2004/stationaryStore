@@ -1,8 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useApp } from "../context/AppContext";
 
 export default function Navbar() {
   const { pathname } = useLocation();
+  const { cartCount, cartTotal } = useApp();
 
   const isActive = (path: string) => pathname === path;
 
@@ -27,7 +29,16 @@ export default function Navbar() {
 
         <div className="navbar-links">
           <Link to="/" className={`nav-link ${isActive("/") ? "active" : ""}`}>
-            Menu
+            Home
+          </Link>
+          <Link
+            to="/orders"
+            className={`nav-link nav-orders ${isActive("/orders") ? "active" : ""}`}
+          >
+            Orders
+            {cartCount > 0 && (
+              <span className="order-badge">{cartCount}</span>
+            )}
           </Link>
           <Link
             to="/profile"
@@ -35,9 +46,12 @@ export default function Navbar() {
           >
             Profile
           </Link>
-          <Link to="/auth" className="btn btn-primary btn-sm">
-            Get Started
-          </Link>
+          {cartCount > 0 && (
+            <div className="nav-cart-total">
+              <span className="nav-total-label">Cart:</span>
+              <span className="nav-total-amount">₹{cartTotal.toFixed(2)}</span>
+            </div>
+          )}
         </div>
       </div>
     </motion.nav>

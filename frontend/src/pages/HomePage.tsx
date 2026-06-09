@@ -1,5 +1,9 @@
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, type Variants } from "framer-motion";
+import { api, mapBackendProduct, type Product, type Category } from "../lib/api";
+import type { ProductItem } from "../data/products";
+import ProductCard from "../components/ProductCard";
 
 const features = [
   {
@@ -21,11 +25,18 @@ const features = [
   },
 ];
 
-const categories = [
-  { name: "Notebooks", emoji: "📔", color: "#8B7355" },
-  { name: "Pens", emoji: "🖊️", color: "#6B8E6B" },
-  { name: "Paper", emoji: "📜", color: "#C4A882" },
-  { name: "Art Supplies", emoji: "🎨", color: "#C77D6E" },
+// Map Supabase category names to frontend routes
+const categoryRouteMap: Record<string, { path: string; emoji: string; color: string }> = {
+  "Notebooks": { path: "/notebooks", emoji: "📔", color: "#8B7355" },
+  "Pens": { path: "/accessories", emoji: "🖊️", color: "#6B8E6B" },
+  "Art Supplies": { path: "/art-materials", emoji: "🎨", color: "#C77D6E" },
+  "Office Supplies": { path: "/accessories", emoji: "📎", color: "#C4A882" },
+  "School Essentials": { path: "/accessories", emoji: "🎒", color: "#7D9B7D" },
+};
+
+// Static categories for pages that don't have DB equivalents
+const staticCategories = [
+  { name: "Books", emoji: "📚", color: "#C4A882", path: "/books" },
 ];
 
 const containerVariants: Variants = {
@@ -45,6 +56,42 @@ const itemVariants: Variants = {
 };
 
 export default function HomePage() {
+  const navigate = useNavigate();
+  const [dbProducts, setDbProducts] = useState<ProductItem[]>([]);
+  const [dbCategories, setDbCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [products, categories] = await Promise.all([
+          api.getProducts(),
+          api.getCategories(),
+        ]);
+        setDbProducts(products.map((p: Product) => mapBackendProduct(p, p.category_id?.toString() ?? "general")));
+        setDbCategories(categories);
+      } catch {
+        // Backend unavailable — home page shows static content only
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  // Build category cards from DB categories + static ones
+  const allCategories = [
+    ...dbCategories
+      .filter((c) => categoryRouteMap[c.name])
+      .map((c) => ({
+        name: c.name,
+        emoji: categoryRouteMap[c.name].emoji,
+        color: categoryRouteMap[c.name].color,
+        path: categoryRouteMap[c.name].path,
+      })),
+    ...staticCategories,
+  ];
+
   return (
     <motion.div
       className="home-page"
@@ -99,6 +146,32 @@ export default function HomePage() {
         </div>
       </motion.section>
 
+      {/* Featured Products - from Database */}
+      {!loading && dbProducts.length > 0 && (
+        <motion.section className="featured-section" variants={itemVariants}>
+          <motion.h2
+            className="section-title"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.4 }}
+          >
+            Featured Products
+          </motion.h2>
+          <motion.div
+            className="products-grid"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+          >
+            {dbProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </motion.div>
+        </motion.section>
+      )}
+
       {/* Categories Section */}
       <motion.section className="categories-section" variants={itemVariants}>
         <motion.h2
@@ -117,7 +190,7 @@ export default function HomePage() {
           whileInView="visible"
           viewport={{ once: true, margin: "-50px" }}
         >
-          {categories.map((cat) => (
+          {allCategories.map((cat) => (
             <motion.div
               key={cat.name}
               className="category-card"
@@ -125,6 +198,7 @@ export default function HomePage() {
               whileHover={{ y: -6, transition: { duration: 0.25 } }}
               whileTap={{ scale: 0.97 }}
               style={{ "--accent": cat.color } as React.CSSProperties}
+              onClick={() => navigate(cat.path)}
             >
               <motion.span
                 className="category-emoji"
