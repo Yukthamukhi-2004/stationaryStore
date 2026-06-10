@@ -20,6 +20,12 @@ const checkout = async (req, res) => {
   if (productError) {
     return res.status(500).json({
       error: productError.message
+    }); 
+  }  
+
+  if (quantity > product.stock_quantity) {
+    return res.status(400).json({
+      message: "Insufficient Stock Available"
     });
   }
 
@@ -33,7 +39,7 @@ const checkout = async (req, res) => {
       {
         user_id,
         total_amount: totalAmount,
-        status: "Placed"
+        status: "Pending"
       }
     ])
     .select()
@@ -82,6 +88,19 @@ const checkout = async (req, res) => {
   if (paymentError) {
     return res.status(500).json({
       error: paymentError.message
+    });
+  }
+
+  const { error: stockError } = await supabase
+  .from("products")
+  .update({
+    stock_quantity: product.stock_quantity - quantity
+  })
+  .eq("id", product_id);
+
+  if (stockError) {
+    return res.status(500).json({
+      error: stockError.message
     });
   }
 

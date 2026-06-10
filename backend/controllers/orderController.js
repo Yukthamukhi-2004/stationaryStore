@@ -23,6 +23,22 @@ const createOrder = async (req, res) => {
     status
   } = req.body;
 
+  console.log("Status received:", status);
+
+  const validStatuses = [
+  "Pending",
+  "Confirmed",
+  "Packed",
+  "Shipped",
+  "Delivered",
+  "Cancelled"
+];
+
+if (!validStatuses.includes(status)) {
+  return res.status(400).json({
+    message: "Invalid order status"
+  });
+}
   const { data, error } = await supabase
     .from("orders")
     .insert([
@@ -73,6 +89,21 @@ const updateOrder = async (req, res) => {
     total_amount,
     status
   } = req.body;
+
+  const validStatuses = [
+  "Pending",
+  "Confirmed",
+  "Packed",
+  "Shipped",
+  "Delivered",
+  "Cancelled"
+];
+
+if (!validStatuses.includes(status)) {
+  return res.status(400).json({
+    message: "Invalid order status"
+  });
+}
 
   const { data, error } = await supabase
     .from("orders")
