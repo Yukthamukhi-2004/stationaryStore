@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useApp } from "../context/AppContext";
+import { useApp } from "../context/useApp";
 
 export default function Navbar() {
   const { pathname } = useLocation();
@@ -36,9 +36,7 @@ export default function Navbar() {
             className={`nav-link nav-orders ${isActive("/orders") ? "active" : ""}`}
           >
             Orders
-            {cartCount > 0 && (
-              <span className="order-badge">{cartCount}</span>
-            )}
+            {cartCount > 0 && <span className="order-badge">{cartCount}</span>}
           </Link>
           <Link
             to="/profile"

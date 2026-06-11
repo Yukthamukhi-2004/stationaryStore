@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useUser } from "@clerk/clerk-react";
-import { useApp } from "../context/AppContext";
+import { useApp } from "../context/useApp";
 import { api, type Order } from "../lib/api";
 
 type TabType = "cart" | "orders";
@@ -66,9 +66,7 @@ export default function OrdersPage() {
     setOrdersError(null);
     try {
       const data = await api.getOrders();
-      const filtered = user
-        ? data.filter((o) => o.user_id === user.id)
-        : data;
+      const filtered = user ? data.filter((o) => o.user_id === user.id) : data;
       setOrders(filtered);
     } catch (err) {
       setOrdersError(
@@ -288,7 +286,10 @@ export default function OrdersPage() {
                     <h3>{checkoutResult.message}</h3>
                     <ul className="checkout-result-details">
                       {checkoutResult.details.map((d, i) => (
-                        <li key={i} className={d.ok ? "text-success" : "text-error"}>
+                        <li
+                          key={i}
+                          className={d.ok ? "text-success" : "text-error"}
+                        >
                           <span>{d.ok ? "✓" : "✗"}</span> {d.name}: {d.detail}
                         </li>
                       ))}
@@ -313,7 +314,8 @@ export default function OrdersPage() {
                     <h2>Payment Method</h2>
                     {!userLoaded || !user ? (
                       <p className="checkout-login-warning">
-                        <Link to="/auth">Sign in</Link> to proceed with checkout.
+                        <Link to="/auth">Sign in</Link> to proceed with
+                        checkout.
                       </p>
                     ) : (
                       <>
@@ -470,7 +472,9 @@ export default function OrdersPage() {
                   >
                     <div className="order-card-header">
                       <span className="order-id">Order #{order.id}</span>
-                      <span className={`order-status status-${order.status.toLowerCase()}`}>
+                      <span
+                        className={`order-status status-${order.status.toLowerCase()}`}
+                      >
                         {order.status}
                       </span>
                     </div>
@@ -484,13 +488,16 @@ export default function OrdersPage() {
                       <div className="order-detail">
                         <span className="order-detail-label">Date</span>
                         <span className="order-detail-value">
-                          {new Date(order.created_at).toLocaleDateString("en-IN", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {new Date(order.created_at).toLocaleDateString(
+                            "en-IN",
+                            {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )}
                         </span>
                       </div>
                     </div>

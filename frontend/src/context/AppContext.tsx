@@ -1,14 +1,6 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
-
-export type CartItem = {
-  id: string;
-  productId: number;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-  category: string;
-};
+import { useState, useCallback, useEffect, type ReactNode } from "react";
+import { AppContext } from "./AppContextValue";
+import type { CartItem } from "./AppContextTypes";
 
 const STORAGE_KEY_CART = "stationery_cart";
 const STORAGE_KEY_FAVORITES = "stationery_favorites";
@@ -31,21 +23,6 @@ function loadFavorites(): Set<number> {
   }
 }
 
-type AppContextType = {
-  cart: CartItem[];
-  favorites: Set<number>;
-  addToCart: (item: CartItem) => void;
-  removeFromCart: (id: string) => void;
-  updateQuantity: (id: string, delta: number) => void;
-  clearCart: () => void;
-  cartTotal: number;
-  cartCount: number;
-  toggleFavorite: (productId: number) => void;
-  isFavorite: (productId: number) => boolean;
-};
-
-const AppContext = createContext<AppContextType | null>(null);
-
 export function AppProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>(loadCart);
   const [favorites, setFavorites] = useState<Set<number>>(loadFavorites);
@@ -54,14 +31,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_CART, JSON.stringify(cart));
-    } catch { /* quota exceeded - silently ignore */ }
+    } catch {
+      /* quota exceeded - silently ignore */
+    }
   }, [cart]);
 
   // Persist favorites to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY_FAVORITES, JSON.stringify(Array.from(favorites)));
-    } catch { /* silently ignore */ }
+      localStorage.setItem(
+        STORAGE_KEY_FAVORITES,
+        JSON.stringify(Array.from(favorites)),
+      );
+    } catch {
+      /* silently ignore */
+    }
   }, [favorites]);
 
   const addToCart = useCallback((item: CartItem) => {
@@ -83,7 +67,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updateQuantity = useCallback((id: string, delta: number) => {
     setCart((prev) =>
       prev
-        .map((i) => (i.id === id ? { ...i, quantity: Math.max(0, i.quantity + delta) } : i))
+        .map((i) =>
+          i.id === id ? { ...i, quantity: Math.max(0, i.quantity + delta) } : i,
+        )
         .filter((i) => i.quantity > 0),
     );
   }, []);
@@ -107,7 +93,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [favorites],
   );
 
-  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const cartTotal = cart.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
@@ -128,10 +117,4 @@ export function AppProvider({ children }: { children: ReactNode }) {
       {children}
     </AppContext.Provider>
   );
-}
-
-export function useApp() {
-  const ctx = useContext(AppContext);
-  if (!ctx) throw new Error("useApp must be used within AppProvider");
-  return ctx;
 }

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { getAuthenticatedSupabase } from "../lib/supabase";
-import { useApp } from "../context/AppContext";
+import { useApp } from "../context/useApp";
 import { api, type Order } from "../lib/api";
 
 type Profile = {
@@ -99,7 +99,16 @@ export default function ProfilePage() {
       <div className="profile-header">
         <div className="profile-avatar">
           {user?.imageUrl ? (
-            <img src={user.imageUrl} alt="Profile" style={{ borderRadius: "50%", width: "100%", height: "100%", objectFit: "cover" }} />
+            <img
+              src={user.imageUrl}
+              alt="Profile"
+              style={{
+                borderRadius: "50%",
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              }}
+            />
           ) : (
             <div className="avatar-initials">{avatarInitial}</div>
           )}
@@ -107,9 +116,7 @@ export default function ProfilePage() {
         <h1>{displayName}</h1>
         <p className="profile-email">{displayEmail}</p>
         <div className="profile-badge">
-          <span className="badge">
-            {profile?.role ?? "Member"}
-          </span>
+          <span className="badge">{profile?.role ?? "Member"}</span>
         </div>
         <div style={{ marginTop: "0.75rem" }}>
           <SignOutButton>
@@ -129,7 +136,9 @@ export default function ProfilePage() {
           <span className="stat-label">Favourites</span>
         </div>
         <div className="stat-card">
-          <span className="stat-number">{loadingOrders ? "..." : orders.length}</span>
+          <span className="stat-number">
+            {loadingOrders ? "..." : orders.length}
+          </span>
           <span className="stat-label">Orders</span>
         </div>
       </div>
@@ -220,7 +229,9 @@ export default function ProfilePage() {
             ))}
             {cart.length > 5 && (
               <div className="detail-item">
-                <span className="detail-label">And {cart.length - 5} more items</span>
+                <span className="detail-label">
+                  And {cart.length - 5} more items
+                </span>
                 <span className="detail-value">
                   <Link to="/orders">View all</Link>
                 </span>
@@ -270,7 +281,9 @@ export default function ProfilePage() {
               <div className="activity-dot" />
               <div className="activity-content">
                 <p className="activity-text">No orders yet</p>
-                <span className="activity-time">Start shopping to see your orders here</span>
+                <span className="activity-time">
+                  Start shopping to see your orders here
+                </span>
               </div>
             </div>
           </div>
@@ -280,12 +293,16 @@ export default function ProfilePage() {
               <div key={order.id} className="profile-order-item">
                 <div className="profile-order-left">
                   <span className="profile-order-id">Order #{order.id}</span>
-                  <span className={`profile-order-status status-${order.status.toLowerCase()}`}>
+                  <span
+                    className={`profile-order-status status-${order.status.toLowerCase()}`}
+                  >
                     {order.status}
                   </span>
                 </div>
                 <div className="profile-order-right">
-                  <span className="profile-order-amount">₹{order.total_amount.toFixed(2)}</span>
+                  <span className="profile-order-amount">
+                    ₹{order.total_amount.toFixed(2)}
+                  </span>
                   <span className="profile-order-date">
                     {new Date(order.created_at).toLocaleDateString("en-IN", {
                       year: "numeric",
@@ -298,7 +315,10 @@ export default function ProfilePage() {
             ))}
             {orders.length > 5 && (
               <div className="profile-order-more">
-                <button className="btn btn-link" onClick={() => navigate("/orders")}>
+                <button
+                  className="btn btn-link"
+                  onClick={() => navigate("/orders")}
+                >
                   View all {orders.length} orders &rarr;
                 </button>
               </div>

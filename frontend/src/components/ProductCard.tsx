@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
-import { useApp } from "../context/AppContext";
+import { useApp } from "../context/useApp";
 import type { ProductItem } from "../data/products";
 
 export default function ProductCard({ product }: { product: ProductItem }) {
-  const { addToCart, cart, updateQuantity, toggleFavorite, isFavorite } = useApp();
+  const { addToCart, cart, updateQuantity, toggleFavorite, isFavorite } =
+    useApp();
   const favored = isFavorite(product.id);
 
   const cartItem = cart.find(
@@ -78,7 +79,9 @@ export default function ProductCard({ product }: { product: ProductItem }) {
             <motion.button
               className="qty-btn"
               whileTap={{ scale: 0.9 }}
-              onClick={() => updateQuantity(`${product.category}-${product.id}`, -1)}
+              onClick={() =>
+                updateQuantity(`${product.category}-${product.id}`, -1)
+              }
             >
               −
             </motion.button>
@@ -86,7 +89,9 @@ export default function ProductCard({ product }: { product: ProductItem }) {
             <motion.button
               className="qty-btn"
               whileTap={{ scale: 0.9 }}
-              onClick={() => updateQuantity(`${product.category}-${product.id}`, 1)}
+              onClick={() =>
+                updateQuantity(`${product.category}-${product.id}`, 1)
+              }
             >
               +
             </motion.button>
