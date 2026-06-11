@@ -1,9 +1,10 @@
 import { SignOutButton, useAuth, useUser } from "@clerk/clerk-react";
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { getAuthenticatedSupabase } from "../lib/supabase";
 import { useApp } from "../context/AppContext";
+import { api, type Order } from "../lib/api";
 
 type Profile = {
   role: string;
@@ -11,14 +12,32 @@ type Profile = {
 };
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Orders from backend
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+
   const { cart, cartCount, cartTotal, favorites } = useApp();
   const favoriteItems = Array.from(favorites);
+
+  const fetchOrders = useCallback(async () => {
+    if (!user) return;
+    setLoadingOrders(true);
+    try {
+      const data = await api.getOrders();
+      setOrders(data.filter((o) => o.user_id === user.id));
+    } catch {
+      // Silently fail — orders section will show fallback
+    } finally {
+      setLoadingOrders(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     async function loadProfile() {
@@ -42,6 +61,9 @@ export default function ProfilePage() {
         } else {
           setProfile(data as Profile | null);
         }
+
+        // Also fetch orders
+        await fetchOrders();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load profile");
       } finally {
@@ -54,7 +76,7 @@ export default function ProfilePage() {
     } else if (isLoaded) {
       setLoading(false);
     }
-  }, [getToken, isLoaded, user]);
+  }, [getToken, isLoaded, user, fetchOrders]);
 
   if (!isLoaded) {
     return <div className="page-loading">Loading...</div>;
@@ -107,7 +129,7 @@ export default function ProfilePage() {
           <span className="stat-label">Favourites</span>
         </div>
         <div className="stat-card">
-          <span className="stat-number">0</span>
+          <span className="stat-number">{loadingOrders ? "..." : orders.length}</span>
           <span className="stat-label">Orders</span>
         </div>
       </div>
@@ -240,15 +262,49 @@ export default function ProfilePage() {
         transition={{ delay: 0.35, duration: 0.35 }}
       >
         <h2>Order History</h2>
-        <div className="activity-list">
-          <div className="activity-item">
-            <div className="activity-dot" />
-            <div className="activity-content">
-              <p className="activity-text">No orders yet</p>
-              <span className="activity-time">Start shopping to see your orders here</span>
+        {loadingOrders ? (
+          <div className="status-message">Loading orders...</div>
+        ) : orders.length === 0 ? (
+          <div className="activity-list">
+            <div className="activity-item">
+              <div className="activity-dot" />
+              <div className="activity-content">
+                <p className="activity-text">No orders yet</p>
+                <span className="activity-time">Start shopping to see your orders here</span>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="profile-orders-list">
+            {orders.slice(0, 5).map((order) => (
+              <div key={order.id} className="profile-order-item">
+                <div className="profile-order-left">
+                  <span className="profile-order-id">Order #{order.id}</span>
+                  <span className={`profile-order-status status-${order.status.toLowerCase()}`}>
+                    {order.status}
+                  </span>
+                </div>
+                <div className="profile-order-right">
+                  <span className="profile-order-amount">₹{order.total_amount.toFixed(2)}</span>
+                  <span className="profile-order-date">
+                    {new Date(order.created_at).toLocaleDateString("en-IN", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                </div>
+              </div>
+            ))}
+            {orders.length > 5 && (
+              <div className="profile-order-more">
+                <button className="btn btn-link" onClick={() => navigate("/orders")}>
+                  View all {orders.length} orders &rarr;
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </motion.div>
 
       <Link to="/" className="btn btn-link back-link">

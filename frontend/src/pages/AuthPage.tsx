@@ -81,7 +81,7 @@ export default function AuthPage() {
       if (result.status === "complete") {
         await setSignUpActive({ session: result.createdSessionId });
         navigate("/profile");
-      } else if (result.status === "missing_fields") {
+      } else if (result.status === "missing_requirements") {
         setErrorMessage("Please fill in all required fields.");
       } else {
         setErrorMessage("Sign-up requires additional verification. Check your email.");

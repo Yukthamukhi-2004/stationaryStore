@@ -1393,6 +1393,357 @@ img {
 }
 
 /* ============================================
+   Orders Page — Tabs & Checkout
+   ============================================ */
+
+.orders-tabs {
+  display: flex;
+  position: relative;
+  background: var(--sand-100);
+  border-radius: var(--radius-lg);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.orders-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  color: var(--ink-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+  transition: color 0.2s ease;
+}
+
+.orders-tab.active {
+  color: var(--ink);
+}
+
+.orders-tab:hover:not(.active) {
+  color: var(--ink-light);
+}
+
+.orders-tab-badge {
+  background: var(--clay-500);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  line-height: 1;
+}
+
+.orders-tab-indicator {
+  position: absolute;
+  bottom: 0;
+  width: 50%;
+  height: 3px;
+  background: var(--sage-400);
+  border-radius: 3px;
+  z-index: 1;
+}
+
+/* Checkout Form */
+.checkout-form {
+  background: white;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  padding: 1.75rem;
+  margin-top: 1rem;
+}
+
+.checkout-form h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-light);
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.checkout-login-warning {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--ink-muted);
+  font-size: 0.95rem;
+}
+
+.payment-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+
+.payment-method-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--ink-light);
+}
+
+.payment-method-option:hover {
+  border-color: var(--sage-300);
+  background: var(--sage-50);
+}
+
+.payment-method-option.selected {
+  border-color: var(--sage-400);
+  background: var(--sage-50);
+  color: var(--ink);
+}
+
+.payment-method-option input[type="radio"] {
+  accent-color: var(--sage-500);
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Checkout Result */
+.checkout-result {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  border-radius: var(--radius-xl);
+  margin-top: 1rem;
+}
+
+.checkout-result--success {
+  background: var(--sage-50);
+  border: 1.5px solid var(--sage-300);
+}
+
+.checkout-result--error {
+  background: var(--clay-50);
+  border: 1.5px solid var(--clay-300);
+}
+
+.checkout-result-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.checkout-result h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 0.75rem;
+}
+
+.checkout-result-details {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.25rem;
+  text-align: left;
+  max-width: 360px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.checkout-result-details li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  font-size: 0.875rem;
+}
+
+.text-success {
+  color: var(--sage-600);
+}
+
+.text-error {
+  color: var(--clay-600);
+}
+
+/* Order List */
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.order-card {
+  background: white;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.order-card:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.order-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  background: var(--paper-warm);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.order-id {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.order-status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+}
+
+.status-placed {
+  background: var(--sage-50);
+  color: var(--sage-600);
+}
+
+.status-pending {
+  background: var(--gold-50);
+  color: var(--gold-700);
+}
+
+.status-shipped {
+  background: #eef6ff;
+  color: #2563eb;
+}
+
+.status-delivered {
+  background: var(--sage-50);
+  color: var(--sage-600);
+}
+
+.status-cancelled {
+  background: var(--clay-50);
+  color: var(--clay-600);
+}
+
+.order-card-body {
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.order-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.order-detail-label {
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+.order-detail-value {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Profile Orders List */
+.profile-orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.profile-order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.profile-order-item:last-child {
+  border-bottom: none;
+}
+
+.profile-order-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.profile-order-id {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.profile-order-status {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  align-self: flex-start;
+}
+
+.profile-order-right {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.profile-order-amount {
+  font-weight: 700;
+  color: var(--sage-600);
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+}
+
+.profile-order-date {
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+
+.profile-order-more {
+  text-align: center;
+  padding-top: 0.5rem;
+}
+
+.status-message {
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 0.75rem 0;
+}
+
+/* ============================================
    Navbar Enhancements
    ============================================ */
 
