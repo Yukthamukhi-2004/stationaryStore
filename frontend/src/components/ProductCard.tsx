@@ -1,10 +1,12 @@
 import { motion } from "framer-motion";
 import { useApp } from "../context/useApp";
+import CartSparkles, { useSparkles } from "./CartSparkles";
 import type { ProductItem } from "../data/products";
 
 export default function ProductCard({ product }: { product: ProductItem }) {
   const { addToCart, cart, updateQuantity, toggleFavorite, isFavorite } =
     useApp();
+  const { trigger, fire: fireSparkles } = useSparkles();
   const favored = isFavorite(product.id);
 
   const cartItem = cart.find(
@@ -23,6 +25,7 @@ export default function ProductCard({ product }: { product: ProductItem }) {
       image: product.image,
       category: product.category,
     });
+    fireSparkles();
   };
 
   return (
@@ -31,7 +34,8 @@ export default function ProductCard({ product }: { product: ProductItem }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+      whileHover={{ y: -6, rotate: 0, transition: { duration: 0.2 } }}
+      layout
     >
       {/* Heart toggle */}
       <button
@@ -98,6 +102,26 @@ export default function ProductCard({ product }: { product: ProductItem }) {
           </div>
         )}
       </div>
+
+      {/* Hand-drawn arrow decoration (visible on hover) */}
+      <div className="hand-arrow-wrap">
+        <svg
+          className="hand-arrow-svg"
+          viewBox="0 0 40 30"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M2 15 L30 15" />
+          <path d="M22 5 L30 15 L22 25" />
+          <path d="M25 12 L30 15 L25 18" strokeWidth="1.5" />
+        </svg>
+      </div>
+
+      {/* Sparkle burst on add to cart */}
+      <CartSparkles trigger={trigger} />
     </motion.div>
   );
 }

@@ -10,6 +10,7 @@ import AccessoriesPage from "./pages/AccessoriesPage";
 import BooksPage from "./pages/BooksPage";
 import ArtMaterialsPage from "./pages/ArtMaterialsPage";
 import OrdersPage from "./pages/OrdersPage";
+import ContactPage from "./pages/ContactPage";
 
 export default function App() {
   const location = useLocation();
@@ -25,6 +26,7 @@ export default function App() {
             <Route path="/books" element={<BooksPage />} />
             <Route path="/art-materials" element={<ArtMaterialsPage />} />
             <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/contact" element={<ContactPage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Route>
