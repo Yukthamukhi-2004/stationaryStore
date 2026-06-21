@@ -90,20 +90,31 @@ const checkout = async (req, res) => {
       error: paymentError.message
     });
   }
+console.log("Product ID:", product_id);
+console.log("Current Stock:", product.stock_quantity);
+console.log("Ordered Quantity:", quantity);
 
-  const { error: stockError } = await supabase
-  .from("products")
-  .update({
-    stock_quantity: product.stock_quantity - quantity
-  })
-  .eq("id", product_id);
+const newStock =
+  Number(product.stock_quantity) - Number(quantity);
 
-  if (stockError) {
-    return res.status(500).json({
-      error: stockError.message
-    });
-  }
+console.log("New Stock:", newStock);
 
+const { data: updatedProduct, error: stockError } =
+  await supabase
+    .from("products")
+    .update({
+      stock_quantity: newStock
+    })
+    .eq("id", product_id)
+    .select();
+
+console.log("Updated Product:", updatedProduct);
+
+if (stockError) {
+  return res.status(500).json({
+    error: stockError.message
+  });
+}
   res.status(201).json({
     message: "Checkout Successful",
     order,

@@ -1,14 +1,24 @@
 const supabase = require("../config/supabase");
 const getProducts = async (req, res) => {
-  const { data, error } = await supabase.from("products").select("*");
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 20;
+
+  const start = (page - 1) * limit;
+  const end = start + limit - 1;
+
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .range(start, end);
+
   if (error) {
     return res.status(500).json({
       error: error.message
     });
   }
+
   res.json(data);
 };
-
 const searchProducts = async (req, res) => {
 
   const { name } = req.query;
@@ -76,14 +86,13 @@ const getProductById = async (req, res) => {
     .single();
 
   if (error) {
-    return res.status(500).json({
-      error: error.message
+    return res.status(404).json({
+      message: "Product Not Found"
     });
   }
 
   res.json(data);
 };
-
 const createProduct = async (req, res) => {
 
   const {
