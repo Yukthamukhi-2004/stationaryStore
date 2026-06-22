@@ -24,6 +24,8 @@ app.use("/cart-items", cartItemRoutes);
 app.use("/payments", paymentRoutes);
 app.use("/checkout", checkoutRoutes);
 app.use(errorHandler);
-app.listen(5001, () => {
+const server = app.listen(5001, () => {
   console.log("Server running on port 5001");
 });
+
+console.log("Listen object created");

@@ -1,5 +1,4 @@
 const supabase = require("../config/supabase");
-
 const getDashboardStats = async (req, res) => {
   try {
 
@@ -39,6 +38,61 @@ const getDashboardStats = async (req, res) => {
   }
 };
 
+const getRevenueAnalytics = async (req, res) => {
+  try {
+
+    const { data, error } = await supabase
+      .from("payments")
+      .select("amount");
+
+    if (error) {
+      throw error;
+    }
+
+    const totalRevenue = data.reduce(
+      (sum, payment) => sum + Number(payment.amount),
+      0
+    );
+
+    res.json({
+      totalRevenue,
+      totalPayments: data.length
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      error: error.message
+    });
+  }
+};
+const getOrderAnalytics = async (req, res) => {
+  try {
+
+    const { data, error } = await supabase
+      .from("orders")
+      .select("status");
+
+    if (error) {
+      throw error;
+    }
+
+    const analytics = {};
+
+    data.forEach(order => {
+      analytics[order.status] =
+        (analytics[order.status] || 0) + 1;
+    });
+
+    res.json(analytics);
+
+  } catch (error) {
+    res.status(500).json({
+      error: error.message
+    });
+  }
+};
 module.exports = {
-  getDashboardStats
+  getDashboardStats,
+  getRevenueAnalytics,
+  getOrderAnalytics
 };
