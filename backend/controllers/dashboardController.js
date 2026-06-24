@@ -92,8 +92,37 @@ const getOrderAnalytics = async (req, res) => {
     });
   }
 };
+const getInventoryAnalytics = async (req, res) => {
+  try {
+
+    const { data, error } = await supabase
+      .from("products")
+      .select("stock_quantity");
+
+    if (error) {
+      throw error;
+    }
+
+    const totalStock = data.reduce(
+      (sum, product) => sum + Number(product.stock_quantity),
+      0
+    );
+
+    res.json({
+      totalProducts: data.length,
+      totalStock
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getRevenueAnalytics,
-  getOrderAnalytics
+  getOrderAnalytics,
+  getInventoryAnalytics
 };

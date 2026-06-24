@@ -6,11 +6,13 @@ console.log("Dashboard Routes Loaded");
 const {
   getDashboardStats,
   getRevenueAnalytics,
-  getOrderAnalytics
+  getOrderAnalytics,
+  getInventoryAnalytics
   
 } = require("../controllers/dashboardController");
 
 router.get("/stats", getDashboardStats);
 router.get("/revenue", getRevenueAnalytics);
 router.get("/orders", getOrderAnalytics);
+router.get("/inventory", getInventoryAnalytics);
 module.exports = router;
