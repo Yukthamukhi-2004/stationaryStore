@@ -12,6 +12,5 @@ const {
 
 router.get("/stats", getDashboardStats);
 router.get("/revenue", getRevenueAnalytics);
-console.log("Orders Route Registered");
 router.get("/orders", getOrderAnalytics);
 module.exports = router;

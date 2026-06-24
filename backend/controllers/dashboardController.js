@@ -66,6 +66,7 @@ const getRevenueAnalytics = async (req, res) => {
   }
 };
 const getOrderAnalytics = async (req, res) => {
+  console.log("Order Analytics API Hit");
   try {
 
     const { data, error } = await supabase
