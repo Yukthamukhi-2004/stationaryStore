@@ -22,8 +22,8 @@ const contactMethods = [
   {
     icon: "✉",
     title: "Email Us",
-    detail: "hello@stationery.com",
-    href: "mailto:hello@stationery.com",
+    detail: "hello@saradastationaries.com",
+    href: "mailto:hello@saradastationaries.com",
   },
   {
     icon: "☎",
@@ -34,13 +34,13 @@ const contactMethods = [
   {
     icon: "📍",
     title: "Visit Us",
-    detail: "123 Sketch Street, Art District, Creative City",
+    detail: "123 Art Street, Creative District, Arts City",
     href: "#",
   },
   {
     icon: "📱",
     title: "Social",
-    detail: "@stationery_store",
+    detail: "@sarada_arts_crafts",
     href: "#",
   },
 ];
@@ -56,11 +56,11 @@ export default function ContactPage() {
       >
         <motion.div className="contact-card" variants={itemVariants}>
           <motion.h1 className="contact-title" variants={itemVariants}>
-            Let's Be Pen Pals ✎
+            Let's Be Pen Pals <img src="/logo.png" alt="" style={{ width: 24, height: 24, objectFit: "contain", verticalAlign: "middle", display: "inline" }} />
           </motion.h1>
           <motion.p className="contact-subtitle" variants={itemVariants}>
             Drop us a note! Whether it's a question, a doodle, or just to say hey
-            — we'd love to hear from you.
+            — we'd love to hear from you at Sarada Stationeries Arts &amp; Crafts.
           </motion.p>
 
           <motion.div className="contact-methods" variants={staggerVariants}>
@@ -86,13 +86,13 @@ export default function ContactPage() {
             className="contact-method"
             variants={itemVariants}
             style={{
-              background: "var(--soft-yellow-100)",
-              border: "1px dashed var(--soft-yellow-300)",
+              background: "var(--gray-50)",
+              border: "1px dashed var(--gray-250)",
             }}
           >
             <div
               className="contact-method-icon"
-              style={{ background: "var(--soft-yellow-200)" }}
+              style={{ background: "var(--gray-100)" }}
             >
               🕐
             </div>
@@ -103,20 +103,10 @@ export default function ContactPage() {
           </motion.div>
 
           <motion.div
-            style={{
-              marginTop: "1.5rem",
-              padding: "1rem",
-              background: "var(--cream)",
-              borderRadius: "var(--radius-md)",
-              textAlign: "center",
-              fontFamily: "var(--font-doodle)",
-              fontSize: "0.9rem",
-              color: "var(--pencil-400)",
-              border: "1px dashed var(--pencil-200)",
-            }}
+            className="contact-handwritten-note"
             variants={itemVariants}
           >
-            ✎ Handwritten with love — just for you.
+            <img src="/logo.png" alt="" style={{ width: 20, height: 20, objectFit: "contain", verticalAlign: "middle", display: "inline", marginRight: 4 }} /> Handwritten with love — just for you.
           </motion.div>
         </motion.div>
       </motion.div>

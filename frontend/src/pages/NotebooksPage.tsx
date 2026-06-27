@@ -66,7 +66,7 @@ export default function NotebooksPage() {
           initial="hidden"
           animate="visible"
         >
-          <Link to="/" className="back-link-top">&larr; Home</Link>
+          <Link to="/home" className="back-link-top">&larr; Home</Link>
           <h1 className="category-title">Notebooks</h1>
           <p className="category-desc">
             Explore our range of notebooks — ruled, plain, charts, and sheets for every need.

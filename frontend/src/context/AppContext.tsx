@@ -2,8 +2,8 @@ import { useState, useCallback, useEffect, type ReactNode } from "react";
 import { AppContext } from "./AppContextValue";
 import type { CartItem } from "./AppContextTypes";
 
-const STORAGE_KEY_CART = "stationery_cart";
-const STORAGE_KEY_FAVORITES = "stationery_favorites";
+const STORAGE_KEY_CART = "sarada_cart";
+const STORAGE_KEY_FAVORITES = "sarada_favorites";
 
 function loadCart(): CartItem[] {
   try {

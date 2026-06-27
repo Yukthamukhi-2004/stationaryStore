@@ -66,7 +66,7 @@ export default function AccessoriesPage() {
           initial="hidden"
           animate="visible"
         >
-          <Link to="/" className="back-link-top">&larr; Home</Link>
+          <Link to="/home" className="back-link-top">&larr; Home</Link>
           <h1 className="category-title">Accessories</h1>
           <p className="category-desc">
             Pens, pencils, erasers, and all the essentials for your desk.

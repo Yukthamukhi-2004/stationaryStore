@@ -14,11 +14,11 @@ interface Sparkle {
 }
 
 const SPARKLE_COLORS = [
-  "var(--pastel-blue-300)",
-  "var(--pastel-blue-200)",
-  "var(--soft-yellow-300)",
-  "var(--soft-yellow-400)",
-  "var(--pencil-200)",
+  "var(--coral-400)",
+  "var(--amber-400)",
+  "var(--coral-300)",
+  "var(--amber-500)",
+  "var(--teal-400)",
 ];
 
 function createSparkles(): Sparkle[] {

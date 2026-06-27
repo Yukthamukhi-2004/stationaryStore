@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSignIn, useSignUp } from "@clerk/clerk-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import PageTransition from "../components/PageTransition";
+import { useUser } from "../context/useUser";
 
 type AuthMode = "sign-in" | "sign-up";
 
@@ -34,31 +34,21 @@ export default function AuthPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const { isLoaded: signInLoaded, signIn, setActive: setSignInActive } = useSignIn();
-  const { isLoaded: signUpLoaded, signUp, setActive: setSignUpActive } = useSignUp();
+  const { signIn, signUp } = useUser();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!signInLoaded || !signIn) return;
     setIsSubmitting(true);
     setErrorMessage(null);
 
     try {
-      const result = await signIn.create({
-        identifier: signInEmail,
-        password: signInPassword,
-      });
-
-      if (result.status === "complete") {
-        await setSignInActive({ session: result.createdSessionId });
-        navigate("/profile");
-      } else {
-        setErrorMessage("Sign-in requires additional verification.");
-      }
+      await signIn(signInEmail.trim(), signInPassword);
+      navigate("/profile");
     } catch (err: unknown) {
-      const clerkErr = err as { errors?: Array<{ message: string }> };
       setErrorMessage(
-        clerkErr?.errors?.[0]?.message ?? "Sign-in failed. Please try again.",
+        err instanceof Error
+          ? err.message
+          : "Sign-in failed. Please try again.",
       );
     } finally {
       setIsSubmitting(false);
@@ -67,30 +57,17 @@ export default function AuthPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!signUpLoaded || !signUp) return;
     setIsSubmitting(true);
     setErrorMessage(null);
 
     try {
-      const result = await signUp.create({
-        firstName: signUpName.split(" ")[0] || signUpName,
-        lastName: signUpName.split(" ").slice(1).join(" ") || "",
-        emailAddress: signUpEmail,
-        password: signUpPassword,
-      });
-
-      if (result.status === "complete") {
-        await setSignUpActive({ session: result.createdSessionId });
-        navigate("/profile");
-      } else if (result.status === "missing_requirements") {
-        setErrorMessage("Please fill in all required fields.");
-      } else {
-        setErrorMessage("Sign-up requires additional verification. Check your email.");
-      }
+      await signUp(signUpName.trim(), signUpEmail.trim(), signUpPassword);
+      navigate("/profile");
     } catch (err: unknown) {
-      const clerkErr = err as { errors?: Array<{ message: string }> };
       setErrorMessage(
-        clerkErr?.errors?.[0]?.message ?? "Sign-up failed. Please try again.",
+        err instanceof Error
+          ? err.message
+          : "Sign-up failed. Please try again.",
       );
     } finally {
       setIsSubmitting(false);
@@ -169,7 +146,9 @@ export default function AuthPage() {
                   >
                     <div className="auth-form-header">
                       <h1>Welcome Back</h1>
-                      <p className="auth-subtitle">Sign in to continue shopping</p>
+                      <p className="auth-subtitle">
+                        Sign in to continue shopping
+                      </p>
                     </div>
 
                     <motion.div
@@ -219,13 +198,17 @@ export default function AuthPage() {
                       transition={{ delay: 0.15 }}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.97 }}
-                      disabled={isSubmitting || !signInLoaded}
+                      disabled={isSubmitting}
                     >
                       {isSubmitting ? (
                         <motion.span
                           className="btn-spinner"
                           animate={{ rotate: 360 }}
-                          transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+                          transition={{
+                            repeat: Infinity,
+                            duration: 0.8,
+                            ease: "linear",
+                          }}
                         >
                           ⟳
                         </motion.span>
@@ -247,7 +230,9 @@ export default function AuthPage() {
                   >
                     <div className="auth-form-header">
                       <h1>Create Account</h1>
-                      <p className="auth-subtitle">Join our community of creators</p>
+                      <p className="auth-subtitle">
+                        Join our community of creators
+                      </p>
                     </div>
 
                     <motion.div
@@ -316,13 +301,17 @@ export default function AuthPage() {
                       transition={{ delay: 0.2 }}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.97 }}
-                      disabled={isSubmitting || !signUpLoaded}
+                      disabled={isSubmitting}
                     >
                       {isSubmitting ? (
                         <motion.span
                           className="btn-spinner"
                           animate={{ rotate: 360 }}
-                          transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+                          transition={{
+                            repeat: Infinity,
+                            duration: 0.8,
+                            ease: "linear",
+                          }}
                         >
                           ⟳
                         </motion.span>

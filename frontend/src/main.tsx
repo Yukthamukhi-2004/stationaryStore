@@ -1,24 +1,31 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import { ClerkProvider } from "@clerk/clerk-react";
 import App from "./App";
+import { AppProvider } from "./context/AppContext";
+import { UserProvider } from "./context/UserContext";
 import "./index.css";
 
-const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-
-if (!clerkPubKey) {
-  throw new Error(
-    "Missing VITE_CLERK_PUBLISHABLE_KEY environment variable.",
-  );
+// ── Register service worker for image caching ──
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker
+    .register("/sw.js")
+    .then((reg) => {
+      console.log("📸 Image cache SW registered:", reg.scope);
+    })
+    .catch(() => {
+      // Service worker registration is optional — silently ignore failures
+    });
 }
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
-      <ClerkProvider publishableKey={clerkPubKey}>
-        <App />
-      </ClerkProvider>
-    </BrowserRouter>
-  </StrictMode>
+    <UserProvider>
+      <AppProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </AppProvider>
+    </UserProvider>
+  </StrictMode>,
 );

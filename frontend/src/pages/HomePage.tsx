@@ -1,43 +1,41 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { motion, type Variants } from "framer-motion";
-import { api, mapBackendProduct, type Product, type Category } from "../lib/api";
-import type { ProductItem } from "../data/products";
-import ProductCard from "../components/ProductCard";
+import { api, type Category } from "../lib/api";
 import DoodleIllustrations from "../components/DoodleIllustrations";
 import PageTransition from "../components/PageTransition";
+import BrandLogo from "../components/BrandLogo";
 
 const features = [
   {
-    icon: "✎",
+    icon: "/logo.png",
     title: "Premium Quality",
     description:
-      "Curated selection of the finest stationery from around the world, chosen with care.",
+      "Handpicked collection of the finest stationery, crafted with care for every creative soul.",
   },
   {
     icon: "✦",
     title: "Thoughtful Design",
     description:
-      "Every piece is crafted with love, blending tradition with modern aesthetics.",
+      "Every piece is chosen with love and an eye for detail, blending tradition with modern aesthetics.",
   },
   {
     icon: "✧",
     title: "Free Shipping",
-    description: "Free shipping on all orders over ₹500, delivered with a smile.",
+    description:
+      "Free shipping on all orders over ₹500, delivered right to your doorstep with a smile.",
   },
 ];
 
-const categoryRouteMap: Record<string, { path: string; emoji: string; color: string }> = {
-  "Notebooks": { path: "/notebooks", emoji: "📔", color: "#8B7355" },
-  "Pens": { path: "/accessories", emoji: "🖊", color: "#6A9FB5" },
-  "Art Supplies": { path: "/art-materials", emoji: "🎨", color: "#C77D6E" },
-  "Office Supplies": { path: "/accessories", emoji: "📎", color: "#B5D5E0" },
-  "School Essentials": { path: "/accessories", emoji: "🎒", color: "#8BAA8B" },
+const categoryRouteMap: Record<string, { path: string; emoji: string }> = {
+  Notebooks: { path: "/notebooks", emoji: "📔" },
+  Pens: { path: "/accessories", emoji: "🖊" },
+  "Art Supplies": { path: "/art-materials", emoji: "🎨" },
+  "Office Supplies": { path: "/accessories", emoji: "📎" },
+  "School Essentials": { path: "/accessories", emoji: "🎒" },
 };
 
-const staticCategories = [
-  { name: "Books", emoji: "📚", color: "#C4A882", path: "/books" },
-];
+const staticCategories = [{ name: "Books", emoji: "📚", path: "/books" }];
 
 const containerVariants: Variants = {
   hidden: {},
@@ -68,27 +66,15 @@ const heroItemVariants: Variants = {
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const [dbProducts, setDbProducts] = useState<ProductItem[]>([]);
   const [dbCategories, setDbCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const [products, categories] = await Promise.all([
-          api.getProducts(),
-          api.getCategories(),
-        ]);
-        setDbProducts(
-          products.map((p: Product) =>
-            mapBackendProduct(p, p.category_id?.toString() ?? "general"),
-          ),
-        );
+        const categories = await api.getCategories();
         setDbCategories(categories);
       } catch {
         // Backend unavailable — home page shows static content only
-      } finally {
-        setLoading(false);
       }
     }
     load();
@@ -100,7 +86,6 @@ export default function HomePage() {
       .map((c) => ({
         name: c.name,
         emoji: categoryRouteMap[c.name].emoji,
-        color: categoryRouteMap[c.name].color,
         path: categoryRouteMap[c.name].path,
       })),
     ...staticCategories,
@@ -114,97 +99,147 @@ export default function HomePage() {
         initial="hidden"
         animate="visible"
       >
-        {/* Hero Section with Doodle Decorations */}
-        <motion.section className="hero-section" variants={heroItemVariants}>
-          <div className="hero-doodles">
-            <motion.span
-              className="hero-doodle"
-              animate={{ opacity: [0.1, 0.25, 0.1], rotate: [-15, -10, -15] }}
-              transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-            >
-              ✎
-            </motion.span>
-            <motion.span
-              className="hero-doodle"
-              animate={{ opacity: [0.1, 0.25, 0.1], rotate: [10, 15, 10] }}
-              transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 0.5 }}
-            >
-              ✦
-            </motion.span>
-            <motion.span
-              className="hero-doodle"
-              animate={{ opacity: [0.1, 0.25, 0.1], rotate: [-5, 0, -5] }}
-              transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut", delay: 1 }}
-            >
-              ✧
-            </motion.span>
-            <motion.span
-              className="hero-doodle"
-              animate={{ opacity: [0.1, 0.25, 0.1], rotate: [20, 25, 20] }}
-              transition={{ repeat: Infinity, duration: 4.5, ease: "easeInOut", delay: 0.3 }}
-            >
-              ♥
-            </motion.span>
-            <motion.span
-              className="hero-doodle"
-              animate={{ opacity: [0.1, 0.25, 0.1], rotate: [-25, -20, -25] }}
-              transition={{ repeat: Infinity, duration: 3.8, ease: "easeInOut", delay: 0.8 }}
-            >
-              ☆
-            </motion.span>
-            <motion.span
-              className="hero-doodle"
-              animate={{ opacity: [0.1, 0.25, 0.1], rotate: [15, 20, 15] }}
-              transition={{ repeat: Infinity, duration: 4.2, ease: "easeInOut", delay: 1.2 }}
-            >
-              ✿
-            </motion.span>
+        {/* ─── Full-Screen Hero Banner ─── */}
+        <motion.section
+          className="hero-section-fullscreen"
+          variants={heroItemVariants}
+        >
+          {/* Decorative floating doodles */}
+          <div className="hero-fullscreen-doodles" aria-hidden="true">
+            {["✦", "✧", "♥", "☆", "✿", "○", "△", "♢"].map((char, i) => (
+              <motion.span
+                key={char}
+                className="hero-fullscreen-doodle"
+                style={{
+                  top: `${8 + ((i * 11) % 85)}%`,
+                  left: `${5 + ((i * 13) % 90)}%`,
+                  fontSize: `${1 + (i % 4) * 0.4}rem`,
+                }}
+                animate={{
+                  opacity: [0.06, 0.15, 0.06],
+                  y: [0, -8, 0],
+                }}
+                transition={{
+                  repeat: Infinity,
+                  duration: 3 + i * 0.5,
+                  ease: "easeInOut",
+                  delay: i * 0.3,
+                }}
+              >
+                {char}
+              </motion.span>
+            ))}
+            {/* Floating logo */}
+            <motion.img
+              src="/logo.png"
+              alt=""
+              className="hero-fullscreen-doodle"
+              style={{
+                position: "absolute",
+                top: "15%",
+                left: "12%",
+                width: 15,
+                height: 15,
+                objectFit: "contain",
+                opacity: 0.12,
+              }}
+              animate={{
+                opacity: [0.06, 0.15, 0.06],
+                y: [0, -8, 0],
+              }}
+              transition={{
+                repeat: Infinity,
+                duration: 3.5,
+                ease: "easeInOut",
+                delay: 0,
+              }}
+            />
           </div>
 
-          <div className="hero-content">
-            <motion.span
-              className="hero-badge"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.1, duration: 0.4, ease: "easeOut" }}
-            >
-              Welcome to
-            </motion.span>
-            <motion.h1
+          {/* Color glow orbs */}
+          <div className="hero-fullscreen-glow" aria-hidden="true">
+            <div className="glow-orb glow-orb--coral" />
+            <div className="glow-orb glow-orb--teal" />
+            <div className="glow-orb glow-orb--amber" />
+          </div>
+
+          <div className="hero-fullscreen-content">
+            {/* Mascot + Brand row */}
+            <motion.div
+              className="hero-fullscreen-brand-row"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+              transition={{ delay: 0.2, duration: 0.6, ease: "easeOut" }}
             >
-              Stationery
-            </motion.h1>
+              <BrandLogo size={45} className="brand-logo" />
+            </motion.div>
+
+            {/* Tagline */}
             <motion.p
-              className="hero-subtitle"
+              className="hero-fullscreen-tagline"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35, duration: 0.5, ease: "easeOut" }}
+              transition={{ delay: 0.4, duration: 0.5, ease: "easeOut" }}
             >
-              Mindfully crafted stationery for creative souls. Discover notebooks,
-              art supplies, and everyday essentials that make your ideas come to
-              life.
+              Your One-Stop Shop for Premium Stationery, Books &amp; Art
+              Supplies
             </motion.p>
+
+            {/* CTA Buttons */}
             <motion.div
-              className="hero-actions"
+              className="hero-fullscreen-actions"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.4, ease: "easeOut" }}
+              transition={{ delay: 0.55, duration: 0.4, ease: "easeOut" }}
             >
-              <motion.span whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.96 }}>
-                <Link to="/notebooks" className="btn btn-primary btn-lg">
-                  Explore Notebooks
-                </Link>
+              <motion.span
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.96 }}
+              >
+                <button
+                  className="btn btn-hero-primary"
+                  onClick={() =>
+                    document
+                      .getElementById("shop-by-category")
+                      ?.scrollIntoView({ behavior: "smooth" })
+                  }
+                >
+                  Explore Categories
+                </button>
               </motion.span>
-              <motion.span whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.96 }}>
-                <Link to="/contact" className="btn btn-outline btn-lg">
-                  Say Hello ✎
-                </Link>
+              <motion.span
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.96 }}
+              >
+                <button
+                  className="btn btn-hero-outline"
+                  onClick={() => navigate("/contact")}
+                >
+                  Contact Us
+                </button>
               </motion.span>
             </motion.div>
           </div>
+
+          {/* Scroll indicator */}
+          <motion.div
+            className="hero-scroll-indicator"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.2, duration: 0.5 }}
+          >
+            <motion.span
+              animate={{ y: [0, 6, 0] }}
+              transition={{
+                repeat: Infinity,
+                duration: 1.5,
+                ease: "easeInOut",
+              }}
+            >
+              ↓
+            </motion.span>
+            <span className="hero-scroll-text">Scroll to explore</span>
+          </motion.div>
         </motion.section>
 
         {/* Doodle Illustrations */}
@@ -221,34 +256,12 @@ export default function HomePage() {
           <DoodleIllustrations />
         </motion.section>
 
-        {/* Featured Products */}
-        {!loading && dbProducts.length > 0 && (
-          <motion.section className="featured-section" variants={itemVariants}>
-            <motion.h2
-              className="section-title"
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true, margin: "-80px" }}
-              transition={{ duration: 0.4 }}
-            >
-              Featured Products
-            </motion.h2>
-            <motion.div
-              className="products-grid"
-              variants={containerVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-50px" }}
-            >
-              {dbProducts.slice(0, 8).map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </motion.div>
-          </motion.section>
-        )}
-
         {/* Categories Section — Sketch Style */}
-        <motion.section className="categories-section" variants={itemVariants}>
+        <motion.section
+          id="shop-by-category"
+          className="categories-section"
+          variants={itemVariants}
+        >
           <motion.h2
             className="section-title"
             initial={{ opacity: 0 }}
@@ -272,7 +285,6 @@ export default function HomePage() {
                 variants={itemVariants}
                 whileHover={{ y: -6, transition: { duration: 0.25 } }}
                 whileTap={{ scale: 0.96 }}
-                style={{ "--accent": cat.color } as React.CSSProperties}
                 onClick={() => navigate(cat.path)}
               >
                 <motion.span
@@ -320,7 +332,15 @@ export default function HomePage() {
                   whileHover={{ scale: 1.2, rotate: -10 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >
-                  {feature.icon}
+                  {feature.icon.startsWith("/") ? (
+                    <img
+                      src={feature.icon}
+                      alt=""
+                      style={{ width: 28, height: 28, objectFit: "contain" }}
+                    />
+                  ) : (
+                    feature.icon
+                  )}
                 </motion.span>
                 <h3>{feature.title}</h3>
                 <p>{feature.description}</p>

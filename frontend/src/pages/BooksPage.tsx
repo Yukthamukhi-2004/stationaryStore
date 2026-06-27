@@ -66,7 +66,7 @@ export default function BooksPage() {
           initial="hidden"
           animate="visible"
         >
-          <Link to="/" className="back-link-top">&larr; Home</Link>
+          <Link to="/home" className="back-link-top">&larr; Home</Link>
           <h1 className="category-title">Books</h1>
           <p className="category-desc">
             Novels, textbooks, journals, diaries and more to fuel your imagination.

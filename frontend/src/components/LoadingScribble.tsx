@@ -20,7 +20,7 @@ export default function LoadingScribble({ text = "Loading..." }: { text?: string
         {/* Scribble line drawn by the pencil */}
         <path
           d="M8 28 C12 26, 16 30, 20 28 C24 26, 28 30, 32 28 C36 26, 40 30, 42 28"
-          stroke="var(--pastel-blue-200)"
+          stroke="var(--gray-300)"
           strokeWidth="2"
           strokeDasharray="60"
           strokeDashoffset="0"

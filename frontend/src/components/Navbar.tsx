@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "../context/useApp";
+import BrandLogo from "../components/BrandLogo";
 
 const shopCategories = [
   { name: "Notebooks", emoji: "📔", path: "/notebooks" },
@@ -16,7 +17,11 @@ export default function Navbar() {
   const [shopOpen, setShopOpen] = useState(false);
 
   const isActive = (path: string) => pathname === path;
-  const isShopPage = pathname.startsWith("/notebooks") || pathname.startsWith("/books") || pathname.startsWith("/art-materials") || pathname.startsWith("/accessories");
+  const isShopPage =
+    pathname.startsWith("/notebooks") ||
+    pathname.startsWith("/books") ||
+    pathname.startsWith("/art-materials") ||
+    pathname.startsWith("/accessories");
 
   return (
     <motion.nav
@@ -26,15 +31,19 @@ export default function Navbar() {
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
       <div className="navbar-container">
-        <Link to="/" className="navbar-brand">
-          <motion.span
-            className="brand-icon"
-            whileHover={{ rotate: -10, scale: 1.1 }}
+        <Link to="/home" className="navbar-brand">
+          <motion.div
+            className="brand-logo-wrapper"
+            whileHover={{ rotate: -1, scale: 1.06 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
-            ✎
-          </motion.span>
-          <span className="brand-text">Stationery</span>
+            <BrandLogo size={36} className="brand-logo" />
+          </motion.div>
+          <div className="navbar-brand-stacked">
+            <span className="brand-label">Sarada</span>
+            <span className="brand-main">Stationeries</span>
+            <span className="brand-sub">Arts &amp; Crafts</span>
+          </div>
         </Link>
 
         <div className="navbar-links">
@@ -49,12 +58,6 @@ export default function Navbar() {
               whileTap={{ scale: 0.95 }}
               onClick={() => setShopOpen(!shopOpen)}
             >
-              <motion.span
-                className="pencil-icon"
-                animate={shopOpen ? { rotate: -20 } : { rotate: 0 }}
-              >
-                ✏
-              </motion.span>
               <span className="nav-label">Shop</span>
             </motion.span>
 
@@ -83,7 +86,10 @@ export default function Navbar() {
             </AnimatePresence>
           </div>
 
-          <Link to="/" className={`nav-link ${isActive("/") ? "active" : ""}`}>
+          <Link
+            to="/home"
+            className={`nav-link ${isActive("/home") ? "active" : ""}`}
+          >
             Home
           </Link>
           <Link

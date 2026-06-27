@@ -72,10 +72,7 @@ export type Payment = {
   created_at: string;
 };
 
-async function request<T>(
-  endpoint: string,
-  options?: RequestInit,
-): Promise<T> {
+async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${endpoint}`, {
     headers: {
       "Content-Type": "application/json",
@@ -101,14 +98,19 @@ export const api = {
     return request<Product>(`/products/${id}`);
   },
 
-  async createProduct(product: ProductInput): Promise<{ message: string; product: Product[] }> {
+  async createProduct(
+    product: ProductInput,
+  ): Promise<{ message: string; product: Product[] }> {
     return request<{ message: string; product: Product[] }>("/products", {
       method: "POST",
       body: JSON.stringify(product),
     });
   },
 
-  async updateProduct(id: number, product: Partial<ProductInput>): Promise<{ message: string }> {
+  async updateProduct(
+    id: number,
+    product: Partial<ProductInput>,
+  ): Promise<{ message: string }> {
     return request<{ message: string }>(`/products/${id}`, {
       method: "PUT",
       body: JSON.stringify(product),
@@ -126,7 +128,9 @@ export const api = {
     return request<Order[]>("/orders");
   },
 
-  async createOrder(order: OrderInput): Promise<{ message: string; order: Order[] }> {
+  async createOrder(
+    order: OrderInput,
+  ): Promise<{ message: string; order: Order[] }> {
     return request<{ message: string; order: Order[] }>("/orders", {
       method: "POST",
       body: JSON.stringify(order),
@@ -137,7 +141,10 @@ export const api = {
     return request<Order>(`/orders/${id}`);
   },
 
-  async updateOrder(id: number, order: Partial<OrderInput>): Promise<{ message: string }> {
+  async updateOrder(
+    id: number,
+    order: Partial<OrderInput>,
+  ): Promise<{ message: string }> {
     return request<{ message: string }>(`/orders/${id}`, {
       method: "PUT",
       body: JSON.stringify(order),
@@ -149,7 +156,9 @@ export const api = {
     return request<Cart[]>("/carts");
   },
 
-  async createCart(user_id: string): Promise<{ message: string; cart: Cart[] }> {
+  async createCart(
+    user_id: string,
+  ): Promise<{ message: string; cart: Cart[] }> {
     return request<{ message: string; cart: Cart[] }>("/carts", {
       method: "POST",
       body: JSON.stringify({ user_id }),
@@ -165,15 +174,24 @@ export const api = {
     return request<CartItemBackend[]>("/cart-items");
   },
 
-  async createCartItem(cart_id: number, product_id: number, quantity: number): Promise<{ message: string; item: CartItemBackend[] }> {
-    return request<{ message: string; item: CartItemBackend[] }>("/cart-items", {
-      method: "POST",
-      body: JSON.stringify({ cart_id, product_id, quantity }),
-    });
+  async createCartItem(
+    cart_id: number,
+    product_id: number,
+    quantity: number,
+  ): Promise<{ message: string; item: CartItemBackend[] }> {
+    return request<{ message: string; item: CartItemBackend[] }>(
+      "/cart-items",
+      {
+        method: "POST",
+        body: JSON.stringify({ cart_id, product_id, quantity }),
+      },
+    );
   },
 
   // Checkout
-  async checkout(input: CheckoutInput): Promise<{ message: string; order: Order; payment: Payment }> {
+  async checkout(
+    input: CheckoutInput,
+  ): Promise<{ message: string; order: Order; payment: Payment }> {
     return request("/checkout", {
       method: "POST",
       body: JSON.stringify(input),
@@ -185,10 +203,53 @@ export const api = {
     return request<Payment[]>("/payments");
   },
 
-  async createPayment(payment: { order_id: number; amount: number; payment_method: string; payment_status?: string }): Promise<{ message: string; payment: Payment[] }> {
+  async createPayment(payment: {
+    order_id: number;
+    amount: number;
+    payment_method: string;
+    payment_status?: string;
+  }): Promise<{ message: string; payment: Payment[] }> {
     return request<{ message: string; payment: Payment[] }>("/payments", {
       method: "POST",
       body: JSON.stringify(payment),
+    });
+  },
+
+  // Profile
+  async getProfile(
+    user_id: string,
+  ): Promise<{
+    id: string;
+    clerk_id: string;
+    role: string | null;
+    age: number | null;
+    profession: string | null;
+    address: string | null;
+    created_at: string | null;
+    updated_at: string | null;
+  }> {
+    return request(`/profile/${encodeURIComponent(user_id)}`);
+  },
+
+  async updateProfile(
+    user_id: string,
+    data: { role?: string | null; age?: number | null; profession?: string | null; address?: string | null },
+  ): Promise<{
+    message: string;
+    profile: {
+      id: string;
+      clerk_id: string;
+      role: string | null;
+      age: number | null;
+      profession: string | null;
+      address: string | null;
+      created_at: string | null;
+      updated_at: string | null;
+    };
+  }> {
+    return request(`/profile/${encodeURIComponent(user_id)}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
     });
   },
 
@@ -208,7 +269,9 @@ export function mapBackendProduct(p: Product, category: string): ProductItem {
     id: p.id,
     name: p.product_name,
     price: p.price,
-    image: p.image_url || `https://placehold.co/200x200/F5F0EB/2c2420?text=${encodeURIComponent(p.product_name)}`,
+    image:
+      p.image_url ||
+      `https://placehold.co/200x200/F5F0EB/2c2420?text=${encodeURIComponent(p.product_name)}`,
     category,
   };
 }

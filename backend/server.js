@@ -12,6 +12,7 @@ const cartItemRoutes = require("./routes/cartItemRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const checkoutRoutes = require("./routes/checkoutRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
+const profileRoutes = require("./routes/profileRoutes");
 
 // Middleware
 app.use(cors());
@@ -30,6 +31,7 @@ app.use("/cart-items", cartItemRoutes);
 app.use("/payments", paymentRoutes);
 app.use("/checkout", checkoutRoutes);
 app.use("/categories", categoryRoutes);
+app.use("/profile", profileRoutes);
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {

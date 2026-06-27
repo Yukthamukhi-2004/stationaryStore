@@ -66,7 +66,7 @@ export default function ArtMaterialsPage() {
           initial="hidden"
           animate="visible"
         >
-          <Link to="/" className="back-link-top">&larr; Home</Link>
+          <Link to="/home" className="back-link-top">&larr; Home</Link>
           <h1 className="category-title">Art Materials</h1>
           <p className="category-desc">
             Crayons, sketches, color pens, glitters, drawing books and more.

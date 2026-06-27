@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
-import { useUser } from "@clerk/clerk-react";
+import { useUser } from "../context/useUser";
 import { useApp } from "../context/useApp";
 import { api, type Order, type Payment } from "../lib/api";
 import PageTransition from "../components/PageTransition";
@@ -32,7 +32,7 @@ const EMPTY_ADDRESS: DeliveryAddress = {
   pincode: "",
 };
 
-const SHOP_UPI_ID = "shop@stationeryupi"; // Replace with your actual UPI ID
+const SHOP_UPI_ID = "sarada@artsup"; // Replace with your actual UPI ID
 
 const PAYMENT_METHODS = [
   {
@@ -88,7 +88,7 @@ const itemVariants: Variants = {
 };
 
 export default function OrdersPage() {
-  const { user, isLoaded: userLoaded } = useUser();
+  const { user, isLoaded } = useUser();
   const {
     cart,
     cartTotal,
@@ -109,7 +109,8 @@ export default function OrdersPage() {
   // Checkout state
   const [showCheckout, setShowCheckout] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("address");
-  const [deliveryAddress, setDeliveryAddress] = useState<DeliveryAddress>(EMPTY_ADDRESS);
+  const [deliveryAddress, setDeliveryAddress] =
+    useState<DeliveryAddress>(EMPTY_ADDRESS);
   const [paymentMethod, setPaymentMethod] = useState("upi");
   const [upiReferenceId, setUpiReferenceId] = useState("");
   const [codConfirmed, setCodConfirmed] = useState(false);
@@ -178,6 +179,12 @@ export default function OrdersPage() {
 
   // Fetch orders (filtered to current user)
   const fetchOrders = useCallback(async () => {
+    if (!user) {
+      setOrders([]);
+      setPayments([]);
+      return;
+    }
+
     setLoadingOrders(true);
     setOrdersError(null);
     try {
@@ -185,10 +192,7 @@ export default function OrdersPage() {
         api.getOrders(),
         api.getPayments(),
       ]);
-      const filtered = user
-        ? ordersData.filter((o) => o.user_id === user.id)
-        : ordersData;
-      setOrders(filtered);
+      setOrders(ordersData.filter((o) => o.user_id === user.id));
       setPayments(paymentsData);
     } catch (err) {
       setOrdersError(
@@ -248,8 +252,7 @@ export default function OrdersPage() {
     setCheckingOut(false);
 
     if (allOk) {
-      const pmLabel =
-        PAYMENT_LABELS[paymentMethod]?.label ?? paymentMethod;
+      const pmLabel = PAYMENT_LABELS[paymentMethod]?.label ?? paymentMethod;
       setCheckoutResult({
         success: true,
         message: `All items checked out successfully via ${pmLabel}!`,
@@ -345,7 +348,7 @@ export default function OrdersPage() {
                 >
                   <div className="empty-cart-icon">🛒</div>
                   <p>Your cart is empty</p>
-                  <Link to="/" className="btn btn-primary">
+                  <Link to="/home" className="btn btn-primary">
                     Browse Products
                   </Link>
                 </motion.div>
@@ -422,8 +425,7 @@ export default function OrdersPage() {
                             📍 Delivering to
                           </div>
                           <p className="checkout-address-result-name">
-                            {deliveryAddress.fullName} —{" "}
-                            {deliveryAddress.phone}
+                            {deliveryAddress.fullName} — {deliveryAddress.phone}
                           </p>
                           <p className="checkout-address-result-text">
                             {deliveryAddress.addressLine1}
@@ -431,8 +433,7 @@ export default function OrdersPage() {
                               `, ${deliveryAddress.addressLine2}`}
                           </p>
                           <p className="checkout-address-result-text">
-                            {deliveryAddress.city},{" "}
-                            {deliveryAddress.state} —{" "}
+                            {deliveryAddress.city}, {deliveryAddress.state} —{" "}
                             {deliveryAddress.pincode}
                           </p>
                         </div>
@@ -465,7 +466,7 @@ export default function OrdersPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.35 }}
                     >
-                      {!userLoaded || !user ? (
+                      {!isLoaded || !user ? (
                         <p className="checkout-login-warning">
                           <Link to="/auth">Sign in</Link> to proceed with
                           checkout.
@@ -550,19 +551,20 @@ export default function OrdersPage() {
                                 <div className="address-form-group">
                                   <label htmlFor="addr-line1">
                                     Address Line 1 *
-                                  </label>                                    <input
-                                      id="addr-line1"
-                                      className="form-input"
-                                      type="text"
-                                      placeholder="House / Flat / Door No., Street"
-                                      value={deliveryAddress.addressLine1}
-                                      onChange={(e) =>
-                                        updateAddressField(
-                                          "addressLine1",
-                                          e.target.value,
-                                        )
-                                      }
-                                    />
+                                  </label>{" "}
+                                  <input
+                                    id="addr-line1"
+                                    className="form-input"
+                                    type="text"
+                                    placeholder="House / Flat / Door No., Street"
+                                    value={deliveryAddress.addressLine1}
+                                    onChange={(e) =>
+                                      updateAddressField(
+                                        "addressLine1",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
                                 </div>
 
                                 <div className="address-form-group">
@@ -621,9 +623,7 @@ export default function OrdersPage() {
                                     />
                                   </div>
                                   <div className="address-form-group">
-                                    <label htmlFor="addr-state">
-                                      State *
-                                    </label>
+                                    <label htmlFor="addr-state">State *</label>
                                     <input
                                       id="addr-state"
                                       className="form-input"
@@ -800,8 +800,7 @@ export default function OrdersPage() {
                                               UPI app
                                             </li>
                                             <li>
-                                              Scan the QR code or pay to UPI
-                                              ID:{" "}
+                                              Scan the QR code or pay to UPI ID:{" "}
                                               <strong>{SHOP_UPI_ID}</strong>
                                             </li>
                                             <li>
@@ -823,7 +822,7 @@ export default function OrdersPage() {
                                         upiId={SHOP_UPI_ID}
                                         name="Stationery Store"
                                         amount={cartTotal}
-                                        transactionNote={`Order from Stationery Store`}
+                                        transactionNote={`Order from Sarada Stationeries`}
                                       />
                                     </div>
 
@@ -909,9 +908,7 @@ export default function OrdersPage() {
                                       />
                                       <span>
                                         I understand that I will pay{" "}
-                                        <strong>
-                                          ₹{cartTotal.toFixed(2)}
-                                        </strong>{" "}
+                                        <strong>₹{cartTotal.toFixed(2)}</strong>{" "}
                                         in cash upon delivery
                                       </span>
                                     </label>
@@ -976,9 +973,7 @@ export default function OrdersPage() {
                       {/* Payment Method Preview */}
                       <div className="cart-summary-section">
                         <div className="cart-summary-section-header">
-                          <span className="cart-summary-section-icon">
-                            💳
-                          </span>
+                          <span className="cart-summary-section-icon">💳</span>
                           <span className="cart-summary-section-title">
                             Payment Method
                           </span>
@@ -1076,7 +1071,7 @@ export default function OrdersPage() {
                 >
                   <div className="empty-cart-icon">📦</div>
                   <p>No orders yet</p>
-                  <Link to="/" className="btn btn-primary">
+                  <Link to="/home" className="btn btn-primary">
                     Start Shopping
                   </Link>
                 </motion.div>
@@ -1090,10 +1085,10 @@ export default function OrdersPage() {
                   {orders.map((order) => {
                     const payment = getPaymentForOrder(order.id);
                     const pmInfo = payment
-                      ? PAYMENT_LABELS[payment.payment_method] ?? {
+                      ? (PAYMENT_LABELS[payment.payment_method] ?? {
                           icon: "💳",
                           label: payment.payment_method,
-                        }
+                        })
                       : null;
 
                     return (
@@ -1104,9 +1099,7 @@ export default function OrdersPage() {
                         whileHover={{ y: -2, transition: { duration: 0.2 } }}
                       >
                         <div className="order-card-header">
-                          <span className="order-id">
-                            Order #{order.id}
-                          </span>
+                          <span className="order-id">Order #{order.id}</span>
                           <span
                             className={`order-status status-${order.status.toLowerCase()}`}
                           >
@@ -1115,9 +1108,7 @@ export default function OrdersPage() {
                         </div>
                         <div className="order-card-body">
                           <div className="order-detail">
-                            <span className="order-detail-label">
-                              Amount
-                            </span>
+                            <span className="order-detail-label">Amount</span>
                             <span className="order-detail-value">
                               ₹{order.total_amount.toFixed(2)}
                             </span>

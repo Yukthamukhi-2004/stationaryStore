@@ -11,27 +11,27 @@ export default function Layout() {
       <footer className="footer">
         <div className="footer-container">
           <p>
-            &copy; {new Date().getFullYear()} Stationery &mdash; Mindfully
-            Crafted for Creative Souls
+            &copy; {new Date().getFullYear()} Sarada Stationeries Arts &amp; Crafts &mdash;
+            Crafted with Care for Creative Souls
           </p>
           <p style={{ marginTop: "0.35rem", fontSize: "0.8rem" }}>
             <Link
-              to="/"
-              style={{ color: "var(--pastel-blue-400)" }}
+              to="/home"
+              style={{ color: "var(--coral-400)" }}
             >
               Home
             </Link>
             {" · "}
             <Link
               to="/contact"
-              style={{ color: "var(--pastel-blue-400)" }}
+              style={{ color: "var(--coral-400)" }}
             >
               Contact
             </Link>
             {" · "}
             <Link
               to="/orders"
-              style={{ color: "var(--pastel-blue-400)" }}
+              style={{ color: "var(--coral-400)" }}
             >
               Orders
             </Link>
