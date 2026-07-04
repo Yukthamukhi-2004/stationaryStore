@@ -33,7 +33,7 @@ const updateProfile = async (req, res) => {
   }
 
   // Strip out fields that should not be updatable
-  const allowedFields = ["role", "age", "profession", "address"];
+  const allowedFields = ["name", "role", "age", "profession", "address"];
   const sanitized = {};
   for (const key of allowedFields) {
     if (updates[key] !== undefined) {
@@ -65,7 +65,72 @@ const updateProfile = async (req, res) => {
   res.json({ message: "Profile updated successfully", profile: data[0] });
 };
 
+/**
+ * POST /profile
+ * Creates a new profile after Supabase Auth signup.
+ * Expects { clerk_id, name, email }
+ */
+const createProfile = async (req, res) => {
+  try {
+    const { clerk_id, name } = req.body;
+
+    if (!clerk_id) {
+      return res.status(400).json({ error: "clerk_id is required" });
+    }
+
+    // Check if profile already exists
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("clerk_id", clerk_id)
+      .single();
+
+    if (existing) {
+      // Profile already exists — update the name if provided
+      if (name) {
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update({ name, updated_at: new Date().toISOString() })
+          .eq("clerk_id", clerk_id);
+
+        if (updateError) {
+          return res.status(500).json({ error: updateError.message });
+        }
+      }
+
+      return res.json({ message: "Profile already exists", profile: existing });
+    }
+
+    // Create new profile
+    const { data, error } = await supabase
+      .from("profiles")
+      .insert([
+        {
+          clerk_id,
+          name: name || null,
+          role: "user",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.status(201).json({
+      message: "Profile created successfully",
+      profile: data,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
   getProfile,
   updateProfile,
+  createProfile,
 };

@@ -1,20 +1,27 @@
 /* ── Stationery Store Image Cache Service Worker ──
- * Caches product images from picsum.photos so they load
- * instantly on repeat visits and work offline.
+ * Caches product images so they load instantly on repeat
+ * visits and work offline. Caches from both the old
+ * placeholder service and Supabase Storage.
  */
 
-const CACHE_NAME = "stationery-images-v1";
+const CACHE_NAME = "stationery-images-v2";
 
-// Only cache picsum.photos images — nothing else
-const IMAGE_ORIGIN = "https://picsum.photos";
+// Image origins we want to cache
+const IMAGE_ORIGINS = [
+  "https://picsum.photos",
+  "https://placehold.co",
+  "https://ukdeegsxgabnbxtctzgk.supabase.co",
+];
+
+function shouldCache(url) {
+  return IMAGE_ORIGINS.some((origin) => url.startsWith(origin));
+}
 
 self.addEventListener("install", () => {
-  // Activate immediately — don't wait for old SW to close
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  // Clean up any old caches from previous versions
   event.waitUntil(
     caches.keys().then((names) =>
       Promise.all(
@@ -24,60 +31,37 @@ self.addEventListener("activate", (event) => {
       ),
     ),
   );
-  // Take control of all pages immediately
   self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 
-  // Only handle picsum.photos image requests
   if (
-    !request.url.startsWith(IMAGE_ORIGIN) ||
+    !shouldCache(request.url) ||
     request.method !== "GET" ||
     !request.destination.startsWith("image")
   ) {
     return;
   }
 
-  console.log("SW intercepting:", request.url);
   event.respondWith(cacheFirst(request));
 });
 
-/**
- * Cache-first strategy:
- * 1. Try to serve from cache (instant on repeat visits)
- * 2. If not cached, fetch from network and cache for next time
- * 3. If network fails (offline), serve stale cache as fallback
- */
 async function cacheFirst(request) {
   const cached = await caches.match(request);
-  if (cached) {
-    console.log("SW cache HIT:", request.url);
-    return cached;
-  }
+  if (cached) return cached;
 
-  console.log("SW cache MISS, fetching:", request.url);
   try {
     const response = await fetch(request);
     const cache = await caches.open(CACHE_NAME);
-    // Cache successful same-origin (status 200) or cross-origin
-    // <img> requests (opaque — status 0) alike
     if (response.status === 200 || response.type === "opaque") {
       cache.put(request, response.clone());
-      console.log("SW cached:", request.url);
-    } else {
-      console.log("SW skip cache (not ok/opaque):", request.url, response.status, response.type);
     }
     return response;
   } catch (err) {
-    // Network failed — try cache one more time as last resort
     const fallback = await caches.match(request);
-    if (fallback) {
-      console.log("SW fallback to cache:", request.url);
-      return fallback;
-    }
-    console.log("SW network failed, no cache:", request.url);
+    if (fallback) return fallback;
     throw err;
   }
 }

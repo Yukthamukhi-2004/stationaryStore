@@ -5,10 +5,10 @@ import { useApp } from "../context/useApp";
 import BrandLogo from "../components/BrandLogo";
 
 const shopCategories = [
-  { name: "Notebooks", emoji: "📔", path: "/notebooks" },
-  { name: "Books", emoji: "📚", path: "/books" },
-  { name: "Art Materials", emoji: "🎨", path: "/art-materials" },
-  { name: "Accessories", emoji: "✏", path: "/accessories" },
+  { name: "Notebooks", emoji: "📔", path: "/shopping/notebooks" },
+  { name: "Books", emoji: "📚", path: "/shopping/books" },
+  { name: "Art Materials", emoji: "🎨", path: "/shopping/art-materials" },
+  { name: "Accessories", emoji: "✏", path: "/shopping/accessories" },
 ];
 
 export default function Navbar() {
@@ -18,10 +18,10 @@ export default function Navbar() {
 
   const isActive = (path: string) => pathname === path;
   const isShopPage =
-    pathname.startsWith("/notebooks") ||
-    pathname.startsWith("/books") ||
-    pathname.startsWith("/art-materials") ||
-    pathname.startsWith("/accessories");
+    pathname.startsWith("/shopping/notebooks") ||
+    pathname.startsWith("/shopping/books") ||
+    pathname.startsWith("/shopping/art-materials") ||
+    pathname.startsWith("/shopping/accessories");
 
   return (
     <motion.nav
@@ -31,7 +31,7 @@ export default function Navbar() {
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
       <div className="navbar-container">
-        <Link to="/home" className="navbar-brand">
+        <Link to="/shopping/home" className="navbar-brand">
           <motion.div
             className="brand-logo-wrapper"
             whileHover={{ rotate: -1, scale: 1.06 }}
@@ -87,27 +87,27 @@ export default function Navbar() {
           </div>
 
           <Link
-            to="/home"
-            className={`nav-link ${isActive("/home") ? "active" : ""}`}
+            to="/shopping/home"
+            className={`nav-link ${isActive("/shopping/home") ? "active" : ""}`}
           >
             Home
           </Link>
           <Link
-            to="/contact"
-            className={`nav-link ${isActive("/contact") ? "active" : ""}`}
+            to="/shopping/contact"
+            className={`nav-link ${isActive("/shopping/contact") ? "active" : ""}`}
           >
             Contact
           </Link>
           <Link
-            to="/orders"
-            className={`nav-link nav-orders ${isActive("/orders") ? "active" : ""}`}
+            to="/shopping/orders"
+            className={`nav-link nav-orders ${isActive("/shopping/orders") ? "active" : ""}`}
           >
             Orders
             {cartCount > 0 && <span className="order-badge">{cartCount}</span>}
           </Link>
           <Link
-            to="/profile"
-            className={`nav-link ${isActive("/profile") ? "active" : ""}`}
+            to="/shopping/profile"
+            className={`nav-link ${isActive("/shopping/profile") ? "active" : ""}`}
           >
             Profile
           </Link>

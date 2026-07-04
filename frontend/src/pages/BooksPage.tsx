@@ -34,7 +34,7 @@ const headerVariants: Variants = {
   },
 };
 
-const BACKEND_CATEGORY_IDS: number[] = [];
+const BACKEND_CATEGORY_IDS = [2]; // DB category 2 = Books
 
 export default function BooksPage() {
   const [products, setProducts] = useState<ProductItem[]>([]);
@@ -66,7 +66,7 @@ export default function BooksPage() {
           initial="hidden"
           animate="visible"
         >
-          <Link to="/home" className="back-link-top">&larr; Home</Link>
+          <Link to="/shopping/home" className="back-link-top">&larr; Home</Link>
           <h1 className="category-title">Books</h1>
           <p className="category-desc">
             Novels, textbooks, journals, diaries and more to fuel your imagination.

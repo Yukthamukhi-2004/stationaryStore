@@ -42,8 +42,9 @@ export default function ProfilePage() {
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [profile, setProfile] = useState<{
-    id: string;
+    id: number;
     clerk_id: string;
+    name: string | null;
     role: string | null;
     age: number | null;
     profession: string | null;
@@ -225,7 +226,7 @@ export default function ProfilePage() {
             >
               <h2>Account Info</h2>
               <p className="status-message">
-                <Link to="/auth">Sign in</Link> to see your profile details.
+                <Link to="/shopping/auth">Sign in</Link> to see your profile details.
               </p>
             </motion.div>
           )}
@@ -331,12 +332,17 @@ export default function ProfilePage() {
                           const ageNum = personalDetails.age
                             ? parseInt(personalDetails.age, 10)
                             : null;
-                          await api.updateProfile(user.id, {
+                          const payload: Record<string, unknown> = {
                             age: ageNum,
                             profession:
                               personalDetails.profession || null,
                             address: personalDetails.address || null,
-                          });
+                          };
+                          // Only send name when it actually changed (avoid overwriting with null)
+                          if (userNameChanged) {
+                            payload.name = editableName;
+                          }
+                          await api.updateProfile(user.id, payload as any);
                           setDetailsSyncError(null);
                         } catch {
                           setDetailsSyncError(
@@ -390,7 +396,7 @@ export default function ProfilePage() {
                       And {cart.length - 5} more items
                     </span>
                     <span className="detail-value">
-                      <Link to="/orders">View all</Link>
+                      <Link to="/shopping/orders">View all</Link>
                     </span>
                   </div>
                 )}
@@ -479,7 +485,7 @@ export default function ProfilePage() {
                   <div className="profile-order-more">
                     <button
                       className="btn btn-link"
-                      onClick={() => navigate("/orders")}
+                      onClick={() => navigate("/shopping/orders")}
                     >
                       View all {orders.length} orders &rarr;
                     </button>
@@ -489,7 +495,7 @@ export default function ProfilePage() {
             )}
           </motion.div>
 
-          <Link to="/home" className="btn btn-link back-link">
+          <Link to="/shopping/home" className="btn btn-link back-link">
             &larr; Back to Home
           </Link>
         </motion.div>

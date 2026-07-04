@@ -34,7 +34,7 @@ const headerVariants: Variants = {
   },
 };
 
-const BACKEND_CATEGORY_IDS = [1, 4, 5];
+const BACKEND_CATEGORY_IDS = [4, 5, 6]; // DB categories: 4=Pens, 5=Office Supplies, 6=School Essentials
 
 export default function AccessoriesPage() {
   const [products, setProducts] = useState<ProductItem[]>([]);
@@ -66,7 +66,7 @@ export default function AccessoriesPage() {
           initial="hidden"
           animate="visible"
         >
-          <Link to="/home" className="back-link-top">&larr; Home</Link>
+          <Link to="/shopping/home" className="back-link-top">&larr; Home</Link>
           <h1 className="category-title">Accessories</h1>
           <p className="category-desc">
             Pens, pencils, erasers, and all the essentials for your desk.

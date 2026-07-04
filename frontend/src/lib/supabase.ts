@@ -14,6 +14,8 @@ const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
+export default supabase;
+
 export function getAuthenticatedSupabase(
   token: string,
 ): SupabaseClient<Database> {

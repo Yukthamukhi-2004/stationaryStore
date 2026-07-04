@@ -8,7 +8,7 @@ import BrandLogo from "../components/BrandLogo";
 
 const features = [
   {
-    icon: "/logo.png",
+    icon: `${import.meta.env.BASE_URL}logo.png`,
     title: "Premium Quality",
     description:
       "Handpicked collection of the finest stationery, crafted with care for every creative soul.",
@@ -28,14 +28,14 @@ const features = [
 ];
 
 const categoryRouteMap: Record<string, { path: string; emoji: string }> = {
-  Notebooks: { path: "/notebooks", emoji: "📔" },
-  Pens: { path: "/accessories", emoji: "🖊" },
-  "Art Supplies": { path: "/art-materials", emoji: "🎨" },
-  "Office Supplies": { path: "/accessories", emoji: "📎" },
-  "School Essentials": { path: "/accessories", emoji: "🎒" },
+  Notebooks: { path: "/shopping/notebooks", emoji: "📔" },
+  Pens: { path: "/shopping/accessories", emoji: "🖊" },
+  "Art Supplies": { path: "/shopping/art-materials", emoji: "🎨" },
+  "Office Supplies": { path: "/shopping/accessories", emoji: "📎" },
+  "School Essentials": { path: "/shopping/accessories", emoji: "🎒" },
 };
 
-const staticCategories = [{ name: "Books", emoji: "📚", path: "/books" }];
+const staticCategories = [{ name: "Books", emoji: "📚", path: "/shopping/books" }];
 
 const containerVariants: Variants = {
   hidden: {},
@@ -131,7 +131,7 @@ export default function HomePage() {
             ))}
             {/* Floating logo */}
             <motion.img
-              src="/logo.png"
+              src={`${import.meta.env.BASE_URL}logo.png`}
               alt=""
               className="hero-fullscreen-doodle"
               style={{
@@ -213,7 +213,7 @@ export default function HomePage() {
               >
                 <button
                   className="btn btn-hero-outline"
-                  onClick={() => navigate("/contact")}
+                  onClick={() => navigate("/shopping/contact")}
                 >
                   Contact Us
                 </button>

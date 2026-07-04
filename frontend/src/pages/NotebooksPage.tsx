@@ -34,7 +34,7 @@ const headerVariants: Variants = {
   },
 };
 
-const BACKEND_CATEGORY_IDS = [2];
+const BACKEND_CATEGORY_IDS = [1]; // DB category 1 = Notebooks
 
 export default function NotebooksPage() {
   const [products, setProducts] = useState<ProductItem[]>([]);
@@ -66,7 +66,7 @@ export default function NotebooksPage() {
           initial="hidden"
           animate="visible"
         >
-          <Link to="/home" className="back-link-top">&larr; Home</Link>
+          <Link to="/shopping/home" className="back-link-top">&larr; Home</Link>
           <h1 className="category-title">Notebooks</h1>
           <p className="category-desc">
             Explore our range of notebooks — ruled, plain, charts, and sheets for every need.

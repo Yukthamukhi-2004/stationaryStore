@@ -19,4 +19,5 @@ export type AppContextType = {
   cartCount: number;
   toggleFavorite: (productId: number) => void;
   isFavorite: (productId: number) => boolean;
+  isCartOnline: boolean;
 };

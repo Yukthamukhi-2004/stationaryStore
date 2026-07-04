@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import PageTransition from "../components/PageTransition";
+import PasswordInput from "../components/PasswordInput";
 import { useUser } from "../context/useUser";
 
 type AuthMode = "sign-in" | "sign-up";
@@ -30,11 +31,27 @@ export default function AuthPage() {
   const [signUpName, setSignUpName] = useState("");
   const [signUpEmail, setSignUpEmail] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
+  const [signUpConfirmPassword, setSignUpConfirmPassword] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  /** Password strength: 0 = empty, 1 = weak, 2 = fair, 3 = good, 4 = strong */
+  const getPasswordStrength = (pw: string): number => {
+    if (!pw) return 0;
+    let score = 0;
+    if (pw.length >= 6) score++;
+    if (pw.length >= 10) score++;
+    if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
+    if (/\d/.test(pw) && /[^a-zA-Z0-9]/.test(pw)) score++;
+    return Math.min(score, 4);
+  };
+
+  const strength = getPasswordStrength(signUpPassword);
+  const strengthLabels = ["Too short", "Weak", "Fair", "Good", "Strong"];
+  const strengthColors = ["var(--gray-400)", "var(--rose-400)", "var(--amber-400)", "var(--teal-400)", "var(--green-400)"];
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const { signIn, signUp } = useUser();
+  const { user, signIn, signUp } = useUser();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +60,8 @@ export default function AuthPage() {
 
     try {
       await signIn(signInEmail.trim(), signInPassword);
-      navigate("/profile");
+      // onAuthStateChange will set the user before or shortly after navigation
+      navigate("/shopping/profile");
     } catch (err: unknown) {
       setErrorMessage(
         err instanceof Error
@@ -60,9 +78,22 @@ export default function AuthPage() {
     setIsSubmitting(true);
     setErrorMessage(null);
 
+    if (signUpPassword !== signUpConfirmPassword) {
+      setErrorMessage("Passwords do not match.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (signUpPassword.length < 6) {
+      setErrorMessage("Password must be at least 6 characters.");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       await signUp(signUpName.trim(), signUpEmail.trim(), signUpPassword);
-      navigate("/profile");
+      // onAuthStateChange will set the user before or shortly after navigation
+      navigate("/shopping/profile");
     } catch (err: unknown) {
       setErrorMessage(
         err instanceof Error
@@ -171,21 +202,18 @@ export default function AuthPage() {
                     </motion.div>
 
                     <motion.div
-                      className="form-group"
                       variants={staggerVariants}
                       initial="hidden"
                       animate="visible"
                       transition={{ delay: 0.1 }}
                     >
-                      <label htmlFor="si-password">Password</label>
-                      <input
+                      <PasswordInput
+                        label="Password"
                         id="si-password"
-                        type="password"
                         value={signInPassword}
                         onChange={(e) => setSignInPassword(e.target.value)}
                         placeholder="Enter your password"
                         required
-                        className="form-input"
                       />
                     </motion.div>
 
@@ -274,23 +302,63 @@ export default function AuthPage() {
                     </motion.div>
 
                     <motion.div
-                      className="form-group"
                       variants={staggerVariants}
                       initial="hidden"
                       animate="visible"
                       transition={{ delay: 0.15 }}
                     >
-                      <label htmlFor="su-password">Password</label>
-                      <input
+                      <PasswordInput
+                        label="Password"
                         id="su-password"
-                        type="password"
                         value={signUpPassword}
                         onChange={(e) => setSignUpPassword(e.target.value)}
                         placeholder="Create a strong password"
                         required
-                        className="form-input"
                       />
                     </motion.div>
+
+                    <motion.div
+                      variants={staggerVariants}
+                      initial="hidden"
+                      animate="visible"
+                      transition={{ delay: 0.175 }}
+                    >
+                      <PasswordInput
+                        label="Confirm Password"
+                        id="su-confirm-password"
+                        value={signUpConfirmPassword}
+                        onChange={(e) => setSignUpConfirmPassword(e.target.value)}
+                        placeholder="Re-enter your password"
+                        required
+                      />
+                    </motion.div>
+
+                    {/* Password Strength Indicator */}
+                    {signUpPassword.length > 0 && (
+                      <motion.div
+                        className="password-strength"
+                        variants={staggerVariants}
+                        initial="hidden"
+                        animate="visible"
+                        transition={{ delay: 0.19 }}
+                      >
+                        <div className="password-strength-bar">
+                          <div
+                            className="password-strength-fill"
+                            style={{
+                              width: `${(strength / 4) * 100}%`,
+                              background: strengthColors[strength],
+                            }}
+                          />
+                        </div>
+                        <span
+                          className="password-strength-label"
+                          style={{ color: strengthColors[strength] }}
+                        >
+                          {strengthLabels[strength]}
+                        </span>
+                      </motion.div>
+                    )}
 
                     <motion.button
                       type="submit"

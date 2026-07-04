@@ -56,7 +56,7 @@ export default function ContactPage() {
       >
         <motion.div className="contact-card" variants={itemVariants}>
           <motion.h1 className="contact-title" variants={itemVariants}>
-            Let's Be Pen Pals <img src="/logo.png" alt="" style={{ width: 24, height: 24, objectFit: "contain", verticalAlign: "middle", display: "inline" }} />
+            Let's Be Pen Pals <img src={`${import.meta.env.BASE_URL}logo.png`} alt="" style={{ width: 24, height: 24, objectFit: "contain", verticalAlign: "middle", display: "inline" }} />
           </motion.h1>
           <motion.p className="contact-subtitle" variants={itemVariants}>
             Drop us a note! Whether it's a question, a doodle, or just to say hey
@@ -106,7 +106,7 @@ export default function ContactPage() {
             className="contact-handwritten-note"
             variants={itemVariants}
           >
-            <img src="/logo.png" alt="" style={{ width: 20, height: 20, objectFit: "contain", verticalAlign: "middle", display: "inline", marginRight: 4 }} /> Handwritten with love — just for you.
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="" style={{ width: 20, height: 20, objectFit: "contain", verticalAlign: "middle", display: "inline", marginRight: 4 }} /> Handwritten with love — just for you.
           </motion.div>
         </motion.div>
       </motion.div>

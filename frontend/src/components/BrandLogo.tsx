@@ -6,7 +6,7 @@ interface BrandLogoProps {
 export default function BrandLogo({ size = 40, className }: BrandLogoProps) {
   return (
     <img
-      src="/logo.png"
+      src={`${import.meta.env.BASE_URL}logo.png`}
       alt="Sarada Stationeries"
       width={size}
       height={size}

@@ -71,13 +71,13 @@ export default function LandingPage() {
         <div className="landing-topbar-links">
           <button
             className="landing-topbar-btn"
-            onClick={() => navigate("/auth")}
+            onClick={() => navigate("/shopping/auth")}
           >
             Sign In
           </button>
           <button
             className="landing-topbar-btn landing-topbar-btn--primary"
-            onClick={() => navigate("/home")}
+            onClick={() => navigate("/shopping/home")}
           >
             Enter Store
           </button>
@@ -101,7 +101,7 @@ export default function LandingPage() {
           <div className="landing-mascot-circle">
             {imgError ? (
               <img
-                src="/logo.png"
+                src={`${import.meta.env.BASE_URL}logo.png`}
                 alt="Sarada Stationeries"
                 className="landing-mascot-fallback"
                 style={{
@@ -163,18 +163,18 @@ export default function LandingPage() {
             className="landing-cta"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.96 }}
-            onClick={() => navigate("/home")}
+            onClick={() => navigate("/admin")}
           >
-            <span>Enter the Store</span>
+            <span>Explore Admin</span>
             <span className="landing-cta-arrow">→</span>
           </motion.button>
           <motion.button
             className="landing-cta-secondary"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.96 }}
-            onClick={() => navigate("/contact")}
+            onClick={() => navigate("/shopping/home")}
           >
-            Get in Touch
+            Enter the Store
           </motion.button>
         </motion.div>
       </motion.div>

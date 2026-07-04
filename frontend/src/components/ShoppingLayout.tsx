@@ -1,7 +1,7 @@
 import { Outlet, Link } from "react-router-dom";
 import Navbar from "./Navbar";
 
-export default function Layout() {
+export default function ShoppingLayout() {
   return (
     <div className="app-layout">
       <Navbar />
@@ -16,21 +16,21 @@ export default function Layout() {
           </p>
           <p style={{ marginTop: "0.35rem", fontSize: "0.8rem" }}>
             <Link
-              to="/home"
+              to="/shopping/home"
               style={{ color: "var(--coral-400)" }}
             >
               Home
             </Link>
             {" · "}
             <Link
-              to="/contact"
+              to="/shopping/contact"
               style={{ color: "var(--coral-400)" }}
             >
               Contact
             </Link>
             {" · "}
             <Link
-              to="/orders"
+              to="/shopping/orders"
               style={{ color: "var(--coral-400)" }}
             >
               Orders

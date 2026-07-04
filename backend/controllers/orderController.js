@@ -65,6 +65,37 @@ const getOrderById = async (req, res) => {
   res.json(data);
 };
 
+/**
+ * GET /orders/:id/items
+ * Returns all order items for a given order, joined with product info
+ */
+const getOrderItems = async (req, res) => {
+  const { id } = req.params;
+
+  const { data, error } = await supabase
+    .from("order_items")
+    .select(`
+      id,
+      order_id,
+      product_id,
+      quantity,
+      price,
+      products:product_id (
+        product_name,
+        image_url
+      )
+    `)
+    .eq("order_id", id);
+
+  if (error) {
+    return res.status(500).json({
+      error: error.message
+    });
+  }
+
+  res.json(data);
+};
+
 const updateOrder = async (req, res) => {
 
   const { id } = req.params;
@@ -99,5 +130,6 @@ module.exports = {
   getOrders,
   createOrder,
   getOrderById,
-  updateOrder
+  updateOrder,
+  getOrderItems
 };

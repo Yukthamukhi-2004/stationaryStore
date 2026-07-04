@@ -22,7 +22,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <UserProvider>
       <AppProvider>
-        <BrowserRouter>
+        <BrowserRouter basename="/SaradaStationary">
           <App />
         </BrowserRouter>
       </AppProvider>

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useUser } from "../context/useUser";
 import { useApp } from "../context/useApp";
-import { api, type Order, type Payment } from "../lib/api";
+import { api, type Order, type OrderItem, type Payment } from "../lib/api";
 import PageTransition from "../components/PageTransition";
 import UpiQrCode from "../components/UpiQrCode";
 
@@ -165,6 +165,38 @@ export default function OrdersPage() {
     setCheckoutResult(null);
     setShowCheckout(false);
   }, []);
+
+  // Order items state (expandable)
+  const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
+  const [orderItemsMap, setOrderItemsMap] = useState<Record<number, OrderItem[]>>({});
+  const [loadingItems, setLoadingItems] = useState<Set<number>>(new Set());
+
+  // Toggle order items: fetch if not loaded, then expand/collapse
+  const toggleOrderItems = useCallback(async (orderId: number) => {
+    if (expandedOrderId === orderId) {
+      setExpandedOrderId(null);
+      return;
+    }
+
+    setExpandedOrderId(orderId);
+
+    // Fetch items if not already cached
+    if (!orderItemsMap[orderId]) {
+      setLoadingItems((prev) => new Set(prev).add(orderId));
+      try {
+        const items = await api.getOrderItems(orderId);
+        setOrderItemsMap((prev) => ({ ...prev, [orderId]: items }));
+      } catch {
+        setOrderItemsMap((prev) => ({ ...prev, [orderId]: [] }));
+      } finally {
+        setLoadingItems((prev) => {
+          const next = new Set(prev);
+          next.delete(orderId);
+          return next;
+        });
+      }
+    }
+  }, [expandedOrderId, orderItemsMap]);
 
   // Payment data for orders
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -348,7 +380,7 @@ export default function OrdersPage() {
                 >
                   <div className="empty-cart-icon">🛒</div>
                   <p>Your cart is empty</p>
-                  <Link to="/home" className="btn btn-primary">
+                  <Link to="/shopping/home" className="btn btn-primary">
                     Browse Products
                   </Link>
                 </motion.div>
@@ -468,7 +500,7 @@ export default function OrdersPage() {
                     >
                       {!isLoaded || !user ? (
                         <p className="checkout-login-warning">
-                          <Link to="/auth">Sign in</Link> to proceed with
+                          <Link to="/shopping/auth">Sign in</Link> to proceed with
                           checkout.
                         </p>
                       ) : (
@@ -1071,7 +1103,7 @@ export default function OrdersPage() {
                 >
                   <div className="empty-cart-icon">📦</div>
                   <p>No orders yet</p>
-                  <Link to="/home" className="btn btn-primary">
+                  <Link to="/shopping/home" className="btn btn-primary">
                     Start Shopping
                   </Link>
                 </motion.div>
@@ -1090,65 +1122,146 @@ export default function OrdersPage() {
                           label: payment.payment_method,
                         })
                       : null;
+                    const isExpanded = expandedOrderId === order.id;
+                    const items = orderItemsMap[order.id];
+                    const isLoadingItems = loadingItems.has(order.id);
 
                     return (
                       <motion.div
                         key={order.id}
                         className="order-card"
                         variants={itemVariants}
-                        whileHover={{ y: -2, transition: { duration: 0.2 } }}
                       >
-                        <div className="order-card-header">
-                          <span className="order-id">Order #{order.id}</span>
-                          <span
-                            className={`order-status status-${order.status.toLowerCase()}`}
-                          >
-                            {order.status}
-                          </span>
-                        </div>
-                        <div className="order-card-body">
-                          <div className="order-detail">
-                            <span className="order-detail-label">Amount</span>
-                            <span className="order-detail-value">
-                              ₹{order.total_amount.toFixed(2)}
+                        {/* Clickable header to expand/collapse */}
+                        <div
+                          className="order-card-clickable"
+                          onClick={() => toggleOrderItems(order.id)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              toggleOrderItems(order.id);
+                            }
+                          }}
+                        >
+                          <div className="order-card-header">
+                            <span className="order-id">Order #{order.id}</span>
+                            <span
+                              className={`order-status status-${order.status.toLowerCase()}`}
+                            >
+                              {order.status}
                             </span>
                           </div>
-                          <div className="order-detail">
-                            <span className="order-detail-label">Date</span>
-                            <span className="order-detail-value">
-                              {new Date(order.created_at).toLocaleDateString(
-                                "en-IN",
-                                {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                },
-                              )}
-                            </span>
-                          </div>
-                          {payment && (
+                          <div className="order-card-body">
                             <div className="order-detail">
-                              <span className="order-detail-label">
-                                Payment
-                              </span>
-                              <span className="order-detail-value order-detail-value--payment">
-                                <span
-                                  className={`payment-badge payment-badge--${payment.payment_method}`}
-                                >
-                                  {pmInfo?.icon}{" "}
-                                  {pmInfo?.label ?? payment.payment_method}
-                                </span>
-                                <span
-                                  className={`payment-status-dot payment-status-dot--${payment.payment_status.toLowerCase()}`}
-                                >
-                                  {payment.payment_status}
-                                </span>
+                              <span className="order-detail-label">Amount</span>
+                              <span className="order-detail-value">
+                                ₹{order.total_amount.toFixed(2)}
                               </span>
                             </div>
-                          )}
+                            <div className="order-detail">
+                              <span className="order-detail-label">Date</span>
+                              <span className="order-detail-value">
+                                {new Date(order.created_at).toLocaleDateString(
+                                  "en-IN",
+                                  {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  },
+                                )}
+                              </span>
+                            </div>
+                            {payment && (
+                              <div className="order-detail">
+                                <span className="order-detail-label">Payment</span>
+                                <span className="order-detail-value order-detail-value--payment">
+                                  <span
+                                    className={`payment-badge payment-badge--${payment.payment_method}`}
+                                  >
+                                    {pmInfo?.icon} {pmInfo?.label ?? payment.payment_method}
+                                  </span>
+                                  <span
+                                    className={`payment-status-dot payment-status-dot--${payment.payment_status.toLowerCase()}`}
+                                  >
+                                    {payment.payment_status}
+                                  </span>
+                                </span>
+                              </div>
+                            )}
+                            {/* Expand/collapse indicator */}
+                            <div className="order-expand-indicator">
+                              <motion.span
+                                animate={{ rotate: isExpanded ? 180 : 0 }}
+                                transition={{ duration: 0.25, ease: "easeInOut" }}
+                                className="order-expand-arrow"
+                              >
+                                ▼
+                              </motion.span>
+                              <span className="order-expand-label">
+                                {isExpanded
+                                  ? "Hide Items"
+                                  : items
+                                    ? `${items.length} Item${items.length !== 1 ? "s" : ""}`
+                                    : "View Items"}
+                              </span>
+                            </div>
+                          </div>
                         </div>
+
+                        {/* ── Expandable items section ── */}
+                        <AnimatePresence initial={false}>
+                          {isExpanded && (
+                            <motion.div
+                              key={`items-${order.id}`}
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.3, ease: "easeInOut" }}
+                              className="order-items-expandable"
+                            >
+                              <div className="order-items-divider" />
+                              {isLoadingItems ? (
+                                <div className="order-items-loading">Loading items...</div>
+                              ) : items && items.length > 0 ? (
+                                <div className="order-items-list">
+                                  {items.map((item) => (
+                                    <div key={item.id} className="order-item-row">
+                                      <div className="order-item-image">
+                                        {item.products?.image_url ? (
+                                          <img
+                                            src={item.products.image_url}
+                                            alt={item.products.product_name}
+                                          />
+                                        ) : (
+                                          <div className="order-item-image-fallback">📦</div>
+                                        )}
+                                      </div>
+                                      <div className="order-item-info">
+                                        <span className="order-item-name">
+                                          {item.products?.product_name ?? `Product #${item.product_id}`}
+                                        </span>
+                                        <span className="order-item-meta">
+                                          ₹{item.price.toFixed(2)} × {item.quantity}
+                                        </span>
+                                      </div>
+                                      <div className="order-item-total">
+                                        ₹{(item.price * item.quantity).toFixed(2)}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="order-items-empty">
+                                  No product details available for this order.
+                                </div>
+                              )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </motion.div>
                     );
                   })}
