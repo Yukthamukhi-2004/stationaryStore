@@ -1,8 +1,8 @@
 const supabase = require("../config/supabase");
 
 const getProducts = async (req, res) => {
-  const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 20;
+  const page = Number(req.query?.page) || 1;
+  const limit = Number(req.query?.limit) || 20;
 
   const start = (page - 1) * limit;
   const end = start + limit - 1;
@@ -13,15 +13,13 @@ const getProducts = async (req, res) => {
     .range(start, end);
 
   if (error) {
-    return res.status(500).json({
-      error: error.message
-    });
+    return res.status(500).json({ error: error.message });
   }
 
   res.json(data);
 };
-const searchProducts = async (req, res) => {
 
+const searchProducts = async (req, res) => {
   const { name } = req.query;
 
   const { data, error } = await supabase
@@ -30,16 +28,13 @@ const searchProducts = async (req, res) => {
     .ilike("product_name", `%${name}%`);
 
   if (error) {
-    return res.status(500).json({
-      error: error.message
-    });
+    return res.status(500).json({ error: error.message });
   }
 
   res.json(data);
 };
 
 const getProductsByCategory = async (req, res) => {
-
   const { categoryId } = req.params;
 
   const { data, error } = await supabase
@@ -48,18 +43,14 @@ const getProductsByCategory = async (req, res) => {
     .eq("category_id", categoryId);
 
   if (error) {
-    return res.status(500).json({
-      error: error.message,
-    });
+    return res.status(500).json({ error: error.message });
   }
 
   res.json(data);
 };
 
 const sortProducts = async (req, res) => {
-
   const { order } = req.query;
-
   const ascending = order === "asc";
 
   const { data, error } = await supabase
@@ -68,15 +59,11 @@ const sortProducts = async (req, res) => {
     .order("price", { ascending });
 
   if (error) {
-    return res.status(500).json({
-      error: error.message
-    });
+    return res.status(500).json({ error: error.message });
   }
 
   res.json(data);
 };
-
-const getProductById = async (req, res) => {
 
 const getProductById = async (req, res) => {
   const { id } = req.params;
@@ -88,11 +75,7 @@ const getProductById = async (req, res) => {
     .single();
 
   if (error) {
-    return res.status(404).json({
-      message: "Product Not Found"
-    return res.status(500).json({
-      error: error.message,
-    });
+    return res.status(500).json({ error: error.message });
   }
 
   if (!data) {
@@ -101,6 +84,7 @@ const getProductById = async (req, res) => {
 
   res.json(data);
 };
+
 const createProduct = async (req, res) => {
   const {
     category_id,
@@ -111,22 +95,16 @@ const createProduct = async (req, res) => {
     image_url,
   } = req.body;
 
-    if (!product_name) {
-    return res.status(400).json({
-      message: "Product name is required"
-    });
+  if (!product_name) {
+    return res.status(400).json({ message: "Product name is required" });
   }
 
   if (price <= 0) {
-    return res.status(400).json({
-      message: "Price must be greater than 0"
-    });
+    return res.status(400).json({ message: "Price must be greater than 0" });
   }
 
   if (stock_quantity < 0) {
-    return res.status(400).json({
-      message: "Stock cannot be negative"
-    });
+    return res.status(400).json({ message: "Stock cannot be negative" });
   }
 
   const { data, error } = await supabase
@@ -144,9 +122,7 @@ const createProduct = async (req, res) => {
     .select();
 
   if (error) {
-    return res.status(500).json({
-      error: error.message,
-    });
+    return res.status(500).json({ error: error.message });
   }
 
   res.status(201).json({
@@ -154,9 +130,9 @@ const createProduct = async (req, res) => {
     product: data,
   });
 };
+
 const updateProduct = async (req, res) => {
   const { id } = req.params;
-
   const {
     category_id,
     product_name,
@@ -166,17 +142,14 @@ const updateProduct = async (req, res) => {
     image_url,
   } = req.body;
 
-    if (price <= 0) {
-    return res.status(400).json({
-      message: "Price must be greater than 0"
-    });
+  if (price <= 0) {
+    return res.status(400).json({ message: "Price must be greater than 0" });
   }
 
   if (stock_quantity < 0) {
-    return res.status(400).json({
-      message: "Stock cannot be negative"
-    });
+    return res.status(400).json({ message: "Stock cannot be negative" });
   }
+
   const { data, error } = await supabase
     .from("products")
     .update({
@@ -191,9 +164,7 @@ const updateProduct = async (req, res) => {
     .select();
 
   if (error) {
-    return res.status(500).json({
-      error: error.message,
-    });
+    return res.status(500).json({ error: error.message });
   }
 
   res.json({
@@ -201,27 +172,27 @@ const updateProduct = async (req, res) => {
     product: data,
   });
 };
+
 const deleteProduct = async (req, res) => {
   const { id } = req.params;
 
   const { error } = await supabase.from("products").delete().eq("id", id);
 
   if (error) {
-    return res.status(500).json({
-      error: error.message,
-    });
+    return res.status(500).json({ error: error.message });
   }
 
-  res.json({
-    message: "Product Deleted Successfully",
-  });
+  res.json({ message: "Product Deleted Successfully" });
 };
+
 module.exports = {
-  getProducts,searchProducts,getProductsByCategory,sortProducts,getProductById,createProduct,updateProduct,deleteProduct
-};
   getProducts,
+  searchProducts,
+  getProductsByCategory,
+  sortProducts,
   getProductById,
   createProduct,
   updateProduct,
   deleteProduct,
 };
+

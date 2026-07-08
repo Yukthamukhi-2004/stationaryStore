@@ -15,7 +15,6 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const checkoutRoutes = require("./routes/checkoutRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const profileRoutes = require("./routes/profileRoutes");
-const dashboardRoutes = require("./routes/dashboardRoutes");
 const lowStockRoutes = require("./routes/lowStockRoutes");
 const reorderRoutes = require("./routes/reorderRoutes");
 const adminAuthRoutes = require("./routes/adminAuthRoutes");
@@ -30,31 +29,26 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.json({ status: "ok", message: "Stationery Backend Running" });
 });
+
+// Routes
 app.use("/dashboard", dashboardRoutes);
 app.use("/inventory", inventoryRoutes);
-app.use("/products",productRoutes);
-
-// API Routes
 app.use("/products", productRoutes);
 app.use("/orders", orderRoutes);
 app.use("/carts", cartRoutes);
 app.use("/cart-items", cartItemRoutes);
 app.use("/payments", paymentRoutes);
 app.use("/checkout", checkoutRoutes);
-app.use(errorHandler);
-const server = app.listen(5001, () => {
-  console.log("Server running on port 5001");
-});
-
-console.log("Listen object created");
 app.use("/categories", categoryRoutes);
 app.use("/profile", profileRoutes);
-app.use("/dashboard", dashboardRoutes);
 app.use("/low-stock", lowStockRoutes);
 app.use("/reorder", reorderRoutes);
 app.use("/upload", uploadRoutes);
 app.use("/purchases", purchaseRoutes);
 app.use("/admin", adminAuthRoutes);
+
+// Error handler
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5001;
 
