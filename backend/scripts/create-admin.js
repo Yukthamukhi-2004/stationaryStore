@@ -14,9 +14,6 @@
  */
 require("dotenv").config({ path: require("path").resolve(__dirname, "../.env") });
 
-// Node.js 20 needs the ws package for Supabase Realtime
-const WebSocket = require("ws");
-global.WebSocket = WebSocket;
 
 const { createClient } = require("@supabase/supabase-js");
 
@@ -32,7 +29,7 @@ if (!supabaseUrl || !serviceRoleKey) {
 // Use service_role key for admin operations
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-const ADMIN_EMAIL = "admin@sarada.com";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 // Generate a strong random password
 const ADMIN_PASSWORD =
   "Admin@" + Math.random().toString(36).slice(2, 10) + "!";

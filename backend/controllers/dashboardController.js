@@ -1,127 +1,8 @@
 const supabase = require("../config/supabase");
-const getDashboardStats = async (req, res) => {
-  try {
-
-    const { count: totalProducts } = await supabase
-      .from("products")
-      .select("*", { count: "exact", head: true });
-
-    const { count: totalCategories } = await supabase
-      .from("categories")
-      .select("*", { count: "exact", head: true });
-
-    const { count: totalOrders } = await supabase
-      .from("orders")
-      .select("*", { count: "exact", head: true });
-
-    const { count: totalPayments } = await supabase
-      .from("payments")
-      .select("*", { count: "exact", head: true });
-
-    const { count: lowStockProducts } = await supabase
-      .from("products")
-      .select("*", { count: "exact", head: true })
-      .lte("stock_quantity", 10);
-
-    res.json({
-      totalProducts,
-      totalCategories,
-      totalOrders,
-      totalPayments,
-      lowStockProducts
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      error: error.message
-    });
-  }
-};
-
-const getRevenueAnalytics = async (req, res) => {
-  try {
-
-    const { data, error } = await supabase
-      .from("payments")
-      .select("amount");
-
-    if (error) {
-      throw error;
-    }
-
-    const totalRevenue = data.reduce(
-      (sum, payment) => sum + Number(payment.amount),
-      0
-    );
-
-    res.json({
-      totalRevenue,
-      totalPayments: data.length
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      error: error.message
-    });
-  }
-};
-const getOrderAnalytics = async (req, res) => {
-  console.log("Order Analytics API Hit");
-  try {
-
-    const { data, error } = await supabase
-      .from("orders")
-      .select("status");
-
-    if (error) {
-      throw error;
-    }
-
-    const analytics = {};
-
-    data.forEach(order => {
-      analytics[order.status] =
-        (analytics[order.status] || 0) + 1;
-    });
-
-    res.json(analytics);
-
-  } catch (error) {
-    res.status(500).json({
-      error: error.message
-    });
-  }
-};
-const getInventoryAnalytics = async (req, res) => {
-  try {
-
-    const { data, error } = await supabase
-      .from("products")
-      .select("stock_quantity");
-
-    if (error) {
-      throw error;
-    }
-
-    const totalStock = data.reduce(
-      (sum, product) => sum + Number(product.stock_quantity),
-      0
-    );
-
-    res.json({
-      totalProducts: data.length,
-      totalStock
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      error: error.message
-    });
 
 /**
  * GET /api/dashboard/stats
- * Returns aggregate stats: total revenue, order count, product count, category count,
- * dealer invoice count, customer invoice count, stock purchase count, stock purchase value
+ * Dashboard statistics
  */
 const getDashboardStats = async (req, res) => {
   try {
@@ -133,20 +14,57 @@ const getDashboardStats = async (req, res) => {
       supabase.from("purchases").select("*"),
     ]);
 
-    // Extract data, handling missing tables gracefully
-    const orders = results[0].status === "fulfilled" ? results[0].value.data || [] : [];
-    const products = results[1].status === "fulfilled" ? results[1].value.data || [] : [];
-    const categories = results[2].status === "fulfilled" ? results[2].value.data || [] : [];
-    const payments = results[3].status === "fulfilled" ? results[3].value.data || [] : [];
-    const purchases = results[4].status === "fulfilled" ? results[4].value.data || [] : [];
+    const orders =
+      results[0].status === "fulfilled"
+        ? results[0].value.data || []
+        : [];
 
-    // Check critical tables (non-purchases) for errors
-    const ordersError = results[0].status === "rejected" ? results[0].reason : results[0].value?.error;
-    const productsError = results[1].status === "rejected" ? results[1].reason : results[1].value?.error;
-    const categoriesError = results[2].status === "rejected" ? results[2].reason : results[2].value?.error;
-    const paymentsError = results[3].status === "rejected" ? results[3].reason : results[3].value?.error;
+    const products =
+      results[1].status === "fulfilled"
+        ? results[1].value.data || []
+        : [];
 
-    if (ordersError || productsError || categoriesError || paymentsError) {
+    const categories =
+      results[2].status === "fulfilled"
+        ? results[2].value.data || []
+        : [];
+
+    const payments =
+      results[3].status === "fulfilled"
+        ? results[3].value.data || []
+        : [];
+
+    const purchases =
+      results[4].status === "fulfilled"
+        ? results[4].value.data || []
+        : [];
+
+    const ordersError =
+      results[0].status === "rejected"
+        ? results[0].reason
+        : results[0].value?.error;
+
+    const productsError =
+      results[1].status === "rejected"
+        ? results[1].reason
+        : results[1].value?.error;
+
+    const categoriesError =
+      results[2].status === "rejected"
+        ? results[2].reason
+        : results[2].value?.error;
+
+    const paymentsError =
+      results[3].status === "rejected"
+        ? results[3].reason
+        : results[3].value?.error;
+
+    if (
+      ordersError ||
+      productsError ||
+      categoriesError ||
+      paymentsError
+    ) {
       return res.status(500).json({
         error:
           ordersError?.message ||
@@ -156,21 +74,30 @@ const getDashboardStats = async (req, res) => {
       });
     }
 
-    const totalRevenue = payments
-      .filter((p) => p.payment_status === "completed")
-      .reduce((sum, p) => sum + (p.amount || 0), 0);
-
     const completedPayments = payments.filter(
       (p) => p.payment_status === "completed"
-    ).length;
+    );
 
-    // New metrics (purchases table may not exist yet)
-    const dealerInvoices = Array.isArray(purchases) ? purchases.filter((p) => p.type === "dealer_invoice") : [];
-    const stockPurchases = Array.isArray(purchases) ? purchases.filter((p) => p.type === "stock_purchase") : [];
-    const stockPurchaseValue = stockPurchases.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const totalRevenue = completedPayments.reduce(
+      (sum, p) => sum + Number(p.amount || 0),
+      0
+    );
 
-    const statusBreakdown = orders.reduce((acc, o) => {
-      acc[o.status] = (acc[o.status] || 0) + 1;
+    const dealerInvoices = purchases.filter(
+      (p) => p.type === "dealer_invoice"
+    );
+
+    const stockPurchases = purchases.filter(
+      (p) => p.type === "stock_purchase"
+    );
+
+    const stockPurchaseValue = stockPurchases.reduce(
+      (sum, p) => sum + Number(p.amount || 0),
+      0
+    );
+
+    const statusBreakdown = orders.reduce((acc, order) => {
+      acc[order.status] = (acc[order.status] || 0) + 1;
       return acc;
     }, {});
 
@@ -179,115 +106,156 @@ const getDashboardStats = async (req, res) => {
       total_products: products.length,
       total_categories: categories.length,
       total_revenue: totalRevenue,
-      completed_payments: completedPayments,
+      completed_payments: completedPayments.length,
       order_status_breakdown: statusBreakdown,
-      // New metrics
       dealer_invoice_count: dealerInvoices.length,
       customer_invoice_count: orders.length,
       stock_purchase_count: stockPurchases.length,
       stock_purchase_value: stockPurchaseValue,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: err.message,
+    });
   }
 };
 
 /**
- * GET /api/dashboard/revenue-analytics
- * Returns revenue over time (by month)
+ * GET /api/dashboard/revenue
  */
 const getRevenueAnalytics = async (req, res) => {
   try {
     const { data: payments, error } = await supabase
       .from("payments")
       .select("*")
-      .order("created_at", { ascending: true });
+      .order("created_at", {
+        ascending: true,
+      });
 
     if (error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({
+        error: error.message,
+      });
     }
 
-    // Group by month
     const monthlyRevenue = {};
-    for (const p of payments) {
-      if (p.payment_status !== "completed") continue;
-      const date = new Date(p.created_at);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      monthlyRevenue[key] = (monthlyRevenue[key] || 0) + (p.amount || 0);
-    }
 
-    const monthlyData = Object.entries(monthlyRevenue)
-      .map(([month, revenue]) => ({ month, revenue }))
+    payments.forEach((payment) => {
+      if (payment.payment_status !== "completed") return;
+
+      const date = new Date(payment.created_at);
+
+      const key = `${date.getFullYear()}-${String(
+        date.getMonth() + 1
+      ).padStart(2, "0")}`;
+
+      monthlyRevenue[key] =
+        (monthlyRevenue[key] || 0) +
+        Number(payment.amount || 0);
+    });
+
+    const monthly = Object.entries(monthlyRevenue)
+      .map(([month, revenue]) => ({
+        month,
+        revenue,
+      }))
       .sort((a, b) => a.month.localeCompare(b.month));
+
+    const paymentMethodBreakdown = {};
+
+    payments.forEach((payment) => {
+      paymentMethodBreakdown[payment.payment_method] =
+        (paymentMethodBreakdown[payment.payment_method] || 0) + 1;
+    });
 
     res.json({
       total_revenue: payments
         .filter((p) => p.payment_status === "completed")
-        .reduce((sum, p) => sum + (p.amount || 0), 0),
-      monthly: monthlyData,
-      payment_method_breakdown: payments.reduce((acc, p) => {
-        acc[p.payment_method] = (acc[p.payment_method] || 0) + 1;
-        return acc;
-      }, {}),
+        .reduce(
+          (sum, p) => sum + Number(p.amount || 0),
+          0
+        ),
+      monthly,
+      payment_method_breakdown: paymentMethodBreakdown,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: err.message,
+    });
   }
 };
 
 /**
- * GET /api/dashboard/order-analytics
- * Returns order analytics: trends, status distribution, avg order value
+ * GET /api/dashboard/orders
  */
 const getOrderAnalytics = async (req, res) => {
   try {
     const { data: orders, error } = await supabase
       .from("orders")
       .select("*")
-      .order("created_at", { ascending: true });
+      .order("created_at", {
+        ascending: true,
+      });
 
     if (error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({
+        error: error.message,
+      });
     }
 
     const totalOrders = orders.length;
-    const avgOrderValue =
+
+    const averageOrderValue =
       totalOrders > 0
-        ? orders.reduce((sum, o) => sum + (o.total_amount || 0), 0) /
-          totalOrders
+        ? orders.reduce(
+            (sum, order) =>
+              sum + Number(order.total_amount || 0),
+            0
+          ) / totalOrders
         : 0;
 
-    // Group by month
     const monthlyOrders = {};
-    for (const o of orders) {
-      const date = new Date(o.created_at);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      monthlyOrders[key] = (monthlyOrders[key] || 0) + 1;
-    }
 
-    const monthlyData = Object.entries(monthlyOrders)
-      .map(([month, count]) => ({ month, count }))
+    orders.forEach((order) => {
+      const date = new Date(order.created_at);
+
+      const key = `${date.getFullYear()}-${String(
+        date.getMonth() + 1
+      ).padStart(2, "0")}`;
+
+      monthlyOrders[key] =
+        (monthlyOrders[key] || 0) + 1;
+    });
+
+    const monthly = Object.entries(monthlyOrders)
+      .map(([month, count]) => ({
+        month,
+        count,
+      }))
       .sort((a, b) => a.month.localeCompare(b.month));
 
-    const statusDistribution = orders.reduce((acc, o) => {
-      acc[o.status] = (acc[o.status] || 0) + 1;
-      return acc;
-    }, {});
+    const statusDistribution = {};
+
+    orders.forEach((order) => {
+      statusDistribution[order.status] =
+        (statusDistribution[order.status] || 0) + 1;
+    });
 
     res.json({
       total_orders: totalOrders,
-      average_order_value: avgOrderValue,
-      monthly: monthlyData,
+      average_order_value: averageOrderValue,
+      monthly,
       status_distribution: statusDistribution,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: err.message,
+    });
   }
 };
 
 /**
- * GET /api/dashboard/inventory-analytics
- * Returns inventory analytics: total stock, low stock count, category stock
+ * GET /api/dashboard/inventory
  */
 const getInventoryAnalytics = async (req, res) => {
   try {
@@ -296,43 +264,55 @@ const getInventoryAnalytics = async (req, res) => {
       .select("*");
 
     if (error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({
+        error: error.message,
+      });
     }
 
     const totalStock = products.reduce(
-      (sum, p) => sum + (p.stock_quantity || 0),
+      (sum, product) =>
+        sum + Number(product.stock_quantity || 0),
       0
     );
 
     const lowStockItems = products.filter(
-      (p) => p.stock_quantity !== null && p.stock_quantity <= 10
+      (product) =>
+        product.stock_quantity !== null &&
+        product.stock_quantity <= 10
     );
 
-    const outOfStock = products.filter(
-      (p) => p.stock_quantity === null || p.stock_quantity === 0
+    const outOfStockItems = products.filter(
+      (product) =>
+        product.stock_quantity === null ||
+        product.stock_quantity === 0
     );
 
-    const avgPrice =
+    const averagePrice =
       products.length > 0
-        ? products.reduce((sum, p) => sum + (p.price || 0), 0) /
-          products.length
+        ? products.reduce(
+            (sum, product) =>
+              sum + Number(product.price || 0),
+            0
+          ) / products.length
         : 0;
 
     res.json({
       total_products: products.length,
       total_stock: totalStock,
       low_stock_count: lowStockItems.length,
-      out_of_stock_count: outOfStock.length,
-      average_price: avgPrice,
-      low_stock_items: lowStockItems.map((p) => ({
-        id: p.id,
-        product_name: p.product_name,
-        stock_quantity: p.stock_quantity,
-        price: p.price,
+      out_of_stock_count: outOfStockItems.length,
+      average_price: averagePrice,
+      low_stock_items: lowStockItems.map((product) => ({
+        id: product.id,
+        product_name: product.product_name,
+        stock_quantity: product.stock_quantity,
+        price: product.price,
       })),
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: err.message,
+    });
   }
 };
 
@@ -340,7 +320,5 @@ module.exports = {
   getDashboardStats,
   getRevenueAnalytics,
   getOrderAnalytics,
-  getInventoryAnalytics
-};
   getInventoryAnalytics,
 };
