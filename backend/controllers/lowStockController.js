@@ -65,7 +65,7 @@ const restockProduct = async (req, res) => {
       return res.status(404).json({ error: "Product not found" });
     }
 
-    const newStock = (product.stock_quantity || 0) + quantity;
+    const newStock = Number(product.stock_quantity) + Number(quantity);
 
     const { data, error } = await supabase
       .from("products")

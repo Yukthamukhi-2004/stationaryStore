@@ -8,9 +8,16 @@ const {
   getInventoryAnalytics,
 } = require("../controllers/dashboardController");
 
+// Dashboard Statistics
 router.get("/stats", getDashboardStats);
-router.get("/revenue-analytics", getRevenueAnalytics);
-router.get("/order-analytics", getOrderAnalytics);
-router.get("/inventory-analytics", getInventoryAnalytics);
+
+// Revenue Analytics
+router.get("/revenue", getRevenueAnalytics);
+
+// Order Analytics
+router.get("/orders", getOrderAnalytics);
+
+// Inventory Analytics
+router.get("/inventory", getInventoryAnalytics);
 
 module.exports = router;

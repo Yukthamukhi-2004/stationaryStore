@@ -12,12 +12,15 @@ const {
 } = require("../controllers/cartItemController");
 
 router.get("/", getCartItems);
+
 router.get("/cart/:cart_id", getCartItemsByCartId);
+
 router.get("/:id", getCartItemById);
 
 router.post("/", createCartItem);
 
 router.put("/:id", updateCartItem);
+
 router.delete("/:id", deleteCartItem);
 
 module.exports = router;

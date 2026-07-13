@@ -15,9 +15,6 @@
  */
 require("dotenv").config({ path: require("path").resolve(__dirname, "../.env") });
 
-// Node.js 20 needs the ws package for Supabase Realtime
-const WebSocket = require("ws");
-global.WebSocket = WebSocket;
 
 const { createClient } = require("@supabase/supabase-js");
 
