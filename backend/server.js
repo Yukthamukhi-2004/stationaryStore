@@ -15,7 +15,6 @@ const cartRoutes = require("./routes/cartRoutes");
 const cartItemRoutes = require("./routes/cartItemRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const checkoutRoutes = require("./routes/checkoutRoutes");
-
 const categoryRoutes = require("./routes/categoryRoutes");
 const profileRoutes = require("./routes/profileRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
@@ -25,6 +24,9 @@ const reorderRoutes = require("./routes/reorderRoutes");
 const purchaseRoutes = require("./routes/purchaseRoutes");
 const adminAuthRoutes = require("./routes/adminAuthRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
+
+// ==================== Error Handler ====================
+const errorHandler = require("./middleware/errorHandler");
 
 // ==================== Middleware ====================
 app.use(cors());
@@ -40,24 +42,24 @@ app.get("/", (req, res) => {
 
 // ==================== API Routes ====================
 
-// Product Module
+// Products
 app.use("/products", productRoutes);
 
-// Order Module
+// Orders
 app.use("/orders", orderRoutes);
 
-// Cart Module
+// Cart
 app.use("/carts", cartRoutes);
 app.use("/cart-items", cartItemRoutes);
 
-// Payment & Checkout
+// Payments & Checkout
 app.use("/payments", paymentRoutes);
 app.use("/checkout", checkoutRoutes);
 
-// Category Module
+// Categories
 app.use("/categories", categoryRoutes);
 
-// User Profile
+// Profile
 app.use("/profile", profileRoutes);
 
 // Dashboard
@@ -65,18 +67,21 @@ app.use("/dashboard", dashboardRoutes);
 
 // Inventory
 app.use("/inventory", inventoryRoutes);
+
+// Low Stock & Reorder
 app.use("/low-stock", lowStockRoutes);
 app.use("/reorder", reorderRoutes);
+
+// Purchases
 app.use("/purchases", purchaseRoutes);
 
 // Admin
 app.use("/admin", adminAuthRoutes);
 
-// Uploads
+// Upload Images
 app.use("/upload", uploadRoutes);
 
-// ==================== Error Handler ====================
-const errorHandler = require("./middleware/errorHandler");
+// Error Handler (must be after all routes)
 app.use(errorHandler);
 
 // ==================== Server ====================

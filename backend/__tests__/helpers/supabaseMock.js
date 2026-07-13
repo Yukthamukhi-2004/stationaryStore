@@ -19,6 +19,9 @@ function createQueryBuilderFactory() {
 
     const builder = {
       select() { return builder; },
+      range(start, end) {
+        return builder;
+      },
       eq(field, value) {
         filters.push({ type: "eq", field, value });
         return builder;

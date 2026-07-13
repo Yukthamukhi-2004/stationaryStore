@@ -72,12 +72,12 @@ describe("createOrder", () => {
 
   it("creates an order successfully", async () => {
     const req = {
-      body: { user_id: "user-1", total_amount: 150, status: "Placed" },
+      body: { user_id: "user-1", total_amount: 150, status: "Pending" },
     };
     const res = mockRes();
     const mockBuilder = createQueryBuilderFactory();
 
-    const newOrder = [{ id: 1, user_id: "user-1", total_amount: 150, status: "Placed" }];
+    const newOrder = [{ id: 1, user_id: "user-1", total_amount: 150, status: "Pending" }];
     mockSupabase.from.mockImplementation(() => mockBuilder(newOrder));
 
     await createOrder(req, res);
@@ -92,7 +92,7 @@ describe("createOrder", () => {
 
   it("returns 500 on Supabase error", async () => {
     const req = {
-      body: { user_id: "user-1", total_amount: 150, status: "Placed" },
+      body: { user_id: "user-1", total_amount: 150, status: "Pending" },
     };
     const res = mockRes();
     const mockBuilder = createQueryBuilderFactory();

@@ -57,13 +57,13 @@ describe("Orders API", () => {
 
   describe("POST /orders", () => {
     it("creates an order", async () => {
-      const newOrder = [{ id: 3, user_id: "user-1", total_amount: 150, status: "Placed" }];
+      const newOrder = [{ id: 3, user_id: "user-1", total_amount: 150, status: "Pending" }];
       const builder = createQueryBuilderFactory();
       mockSupabase.from.mockImplementation(() => builder(newOrder));
 
       const res = await request(app)
         .post("/orders")
-        .send({ user_id: "user-1", total_amount: 150, status: "Placed" });
+        .send({ user_id: "user-1", total_amount: 150, status: "Pending" });
 
       expect(res.status).toBe(201);
       expect(res.body).toEqual({

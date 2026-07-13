@@ -15,29 +15,19 @@ const getDashboardStats = async (req, res) => {
     ]);
 
     const orders =
-      results[0].status === "fulfilled"
-        ? results[0].value.data || []
-        : [];
+      results[0].status === "fulfilled" ? results[0].value.data || [] : [];
 
     const products =
-      results[1].status === "fulfilled"
-        ? results[1].value.data || []
-        : [];
+      results[1].status === "fulfilled" ? results[1].value.data || [] : [];
 
     const categories =
-      results[2].status === "fulfilled"
-        ? results[2].value.data || []
-        : [];
+      results[2].status === "fulfilled" ? results[2].value.data || [] : [];
 
     const payments =
-      results[3].status === "fulfilled"
-        ? results[3].value.data || []
-        : [];
+      results[3].status === "fulfilled" ? results[3].value.data || [] : [];
 
     const purchases =
-      results[4].status === "fulfilled"
-        ? results[4].value.data || []
-        : [];
+      results[4].status === "fulfilled" ? results[4].value.data || [] : [];
 
     const ordersError =
       results[0].status === "rejected"
@@ -75,24 +65,24 @@ const getDashboardStats = async (req, res) => {
     }
 
     const completedPayments = payments.filter(
-      (p) => p.payment_status === "completed"
+      (payment) => payment.payment_status === "completed"
     );
 
     const totalRevenue = completedPayments.reduce(
-      (sum, p) => sum + Number(p.amount || 0),
+      (sum, payment) => sum + Number(payment.amount || 0),
       0
     );
 
     const dealerInvoices = purchases.filter(
-      (p) => p.type === "dealer_invoice"
+      (purchase) => purchase.type === "dealer_invoice"
     );
 
     const stockPurchases = purchases.filter(
-      (p) => p.type === "stock_purchase"
+      (purchase) => purchase.type === "stock_purchase"
     );
 
     const stockPurchaseValue = stockPurchases.reduce(
-      (sum, p) => sum + Number(p.amount || 0),
+      (sum, purchase) => sum + Number(purchase.amount || 0),
       0
     );
 
@@ -128,14 +118,10 @@ const getRevenueAnalytics = async (req, res) => {
     const { data: payments, error } = await supabase
       .from("payments")
       .select("*")
-      .order("created_at", {
-        ascending: true,
-      });
+      .order("created_at", { ascending: true });
 
     if (error) {
-      return res.status(500).json({
-        error: error.message,
-      });
+      return res.status(500).json({ error: error.message });
     }
 
     const monthlyRevenue = {};
@@ -150,8 +136,7 @@ const getRevenueAnalytics = async (req, res) => {
       ).padStart(2, "0")}`;
 
       monthlyRevenue[key] =
-        (monthlyRevenue[key] || 0) +
-        Number(payment.amount || 0);
+        (monthlyRevenue[key] || 0) + Number(payment.amount || 0);
     });
 
     const monthly = Object.entries(monthlyRevenue)
@@ -170,9 +155,9 @@ const getRevenueAnalytics = async (req, res) => {
 
     res.json({
       total_revenue: payments
-        .filter((p) => p.payment_status === "completed")
+        .filter((payment) => payment.payment_status === "completed")
         .reduce(
-          (sum, p) => sum + Number(p.amount || 0),
+          (sum, payment) => sum + Number(payment.amount || 0),
           0
         ),
       monthly,
@@ -193,14 +178,10 @@ const getOrderAnalytics = async (req, res) => {
     const { data: orders, error } = await supabase
       .from("orders")
       .select("*")
-      .order("created_at", {
-        ascending: true,
-      });
+      .order("created_at", { ascending: true });
 
     if (error) {
-      return res.status(500).json({
-        error: error.message,
-      });
+      return res.status(500).json({ error: error.message });
     }
 
     const totalOrders = orders.length;
@@ -208,8 +189,7 @@ const getOrderAnalytics = async (req, res) => {
     const averageOrderValue =
       totalOrders > 0
         ? orders.reduce(
-            (sum, order) =>
-              sum + Number(order.total_amount || 0),
+            (sum, order) => sum + Number(order.total_amount || 0),
             0
           ) / totalOrders
         : 0;
@@ -223,8 +203,7 @@ const getOrderAnalytics = async (req, res) => {
         date.getMonth() + 1
       ).padStart(2, "0")}`;
 
-      monthlyOrders[key] =
-        (monthlyOrders[key] || 0) + 1;
+      monthlyOrders[key] = (monthlyOrders[key] || 0) + 1;
     });
 
     const monthly = Object.entries(monthlyOrders)
@@ -270,8 +249,7 @@ const getInventoryAnalytics = async (req, res) => {
     }
 
     const totalStock = products.reduce(
-      (sum, product) =>
-        sum + Number(product.stock_quantity || 0),
+      (sum, product) => sum + Number(product.stock_quantity || 0),
       0
     );
 
@@ -290,8 +268,7 @@ const getInventoryAnalytics = async (req, res) => {
     const averagePrice =
       products.length > 0
         ? products.reduce(
-            (sum, product) =>
-              sum + Number(product.price || 0),
+            (sum, product) => sum + Number(product.price || 0),
             0
           ) / products.length
         : 0;

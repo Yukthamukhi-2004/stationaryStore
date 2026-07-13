@@ -1,11 +1,11 @@
 const express = require("express");
 const router = express.Router();
+
 const {
   getDashboardStats,
   getRevenueAnalytics,
   getOrderAnalytics,
-  getInventoryAnalytics
-  
+  getInventoryAnalytics,
 } = require("../controllers/dashboardController");
 
 // Dashboard Statistics

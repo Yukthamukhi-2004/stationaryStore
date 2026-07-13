@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "../context/useApp";
 import BrandLogo from "../components/BrandLogo";
+import GlobalSearch from "./GlobalSearch";
 
 const shopCategories = [
   { name: "Notebooks", emoji: "📔", path: "/shopping/notebooks" },
@@ -45,6 +46,8 @@ export default function Navbar() {
             <span className="brand-sub">Arts &amp; Crafts</span>
           </div>
         </Link>
+
+        <GlobalSearch />
 
         <div className="navbar-links">
           {/* Shop Dropdown */}

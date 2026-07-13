@@ -58,6 +58,10 @@ function createQueryBuilder(table) {
       return this;
     },
 
+    range(start, end) {
+      return this;
+    },
+
     eq(field, value) {
       callTracker.eq.push({ field, value });
       this._filters.push({ type: "eq", field, value });
