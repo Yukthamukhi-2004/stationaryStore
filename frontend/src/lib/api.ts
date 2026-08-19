@@ -218,12 +218,23 @@ export type InventoryAnalytics = {
 
 export const api = {
   // Products
-  async getProducts(): Promise<Product[]> {
-    return request<Product[]>("/products");
+  async getProducts(params?: {
+    limit?: number;
+    page?: number;
+  }): Promise<Product[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.limit) searchParams.set("limit", String(params.limit));
+    if (params?.page) searchParams.set("page", String(params.page));
+    const qs = searchParams.toString();
+    return request<Product[]>(`/products${qs ? `?${qs}` : ""}`);
   },
 
   async getProduct(id: number): Promise<Product> {
     return request<Product>(`/products/${id}`);
+  },
+
+  async getProductsByCategory(categoryId: number): Promise<Product[]> {
+    return request<Product[]>(`/products/category/${categoryId}`);
   },
 
   async createProduct(
@@ -374,12 +385,10 @@ export const api = {
     user_id: string,
   ): Promise<{
     id: number;
-    clerk_id: string;
+    user_id: string;
+    email: string | null;
     name: string | null;
     role: string | null;
-    age: number | null;
-    profession: string | null;
-    address: string | null;
     created_at: string | null;
     updated_at: string | null;
   }> {
@@ -387,9 +396,10 @@ export const api = {
   },
 
   async createProfile(data: {
-    clerk_id: string;
+    user_id: string;
     name?: string | null;
-  }): Promise<{ message: string; profile: { id: number; clerk_id: string; name: string | null; role: string } }> {
+    email?: string | null;
+  }): Promise<{ message: string; profile: { id: number; user_id: string; name: string | null; role: string } }> {
     return request("/profile", {
       method: "POST",
       body: JSON.stringify(data),
@@ -398,17 +408,15 @@ export const api = {
 
   async updateProfile(
     user_id: string,
-    data: { name?: string | null; role?: string | null; age?: number | null; profession?: string | null; address?: string | null },
+    data: { name?: string | null; role?: string | null; email?: string | null },
   ): Promise<{
     message: string;
     profile: {
       id: number;
-      clerk_id: string;
+      user_id: string;
+      email: string | null;
       name: string | null;
       role: string | null;
-      age: number | null;
-      profession: string | null;
-      address: string | null;
       created_at: string | null;
       updated_at: string | null;
     };

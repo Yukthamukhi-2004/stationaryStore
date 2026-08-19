@@ -15,14 +15,16 @@ describe("Profile API", () => {
   });
 
   describe("GET /profile/:user_id", () => {
-    it("returns a profile by user_id", async () => {
+    it("returns a profile by user_id (mapped with derived name)", async () => {
       const profile = {
         id: 1,
-        clerk_id: "clerk-123",
+        user_id: "clerk-123",
+        email: "john@example.com",
+        first_name: "John",
+        last_name: "Doe",
         role: "user",
-        age: 25,
-        profession: "Student",
-        address: "123 Main St",
+        created_at: "2024-01-01T00:00:00Z",
+        updated_at: "2024-01-01T00:00:00Z",
       };
       const builder = createQueryBuilderFactory();
       mockSupabase.from.mockImplementation(() => builder(profile));
@@ -30,7 +32,15 @@ describe("Profile API", () => {
       const res = await request(app).get("/profile/clerk-123");
 
       expect(res.status).toBe(200);
-      expect(res.body).toEqual(profile);
+      expect(res.body).toEqual({
+        id: 1,
+        user_id: "clerk-123",
+        email: "john@example.com",
+        name: "John Doe",
+        role: "user",
+        created_at: "2024-01-01T00:00:00Z",
+        updated_at: "2024-01-01T00:00:00Z",
+      });
     });
 
     it("returns 404 when profile not found (PGRST116)", async () => {
@@ -50,30 +60,40 @@ describe("Profile API", () => {
     it("updates a profile with allowed fields", async () => {
       const updated = [{
         id: 1,
-        clerk_id: "clerk-123",
+        user_id: "clerk-123",
+        email: null,
+        first_name: "Jane",
+        last_name: "Doe",
         role: "admin",
-        age: 26,
-        profession: "Developer",
-        address: "456 Oak St",
+        created_at: "2024-01-01T00:00:00Z",
+        updated_at: "2024-01-01T00:00:00Z",
       }];
       const builder = createQueryBuilderFactory();
       mockSupabase.from.mockImplementation(() => builder(updated));
 
       const res = await request(app)
         .put("/profile/clerk-123")
-        .send({ role: "admin", age: 26, profession: "Developer" });
+        .send({ role: "admin", name: "Jane Doe" });
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({
         message: "Profile updated successfully",
-        profile: updated[0],
+        profile: {
+          id: 1,
+          user_id: "clerk-123",
+          email: null,
+          name: "Jane Doe",
+          role: "admin",
+          created_at: "2024-01-01T00:00:00Z",
+          updated_at: "2024-01-01T00:00:00Z",
+        },
       });
     });
 
     it("returns 400 when no valid fields provided", async () => {
       const res = await request(app)
         .put("/profile/clerk-123")
-        .send({ invalid_field: "value" });
+        .send({ age: 30, profession: "Engineer" });
 
       expect(res.status).toBe(400);
       expect(res.body).toEqual({ error: "No valid fields to update" });
@@ -85,7 +105,7 @@ describe("Profile API", () => {
 
       const res = await request(app)
         .put("/profile/nonexistent")
-        .send({ age: 30 });
+        .send({ name: "Jane" });
 
       expect(res.status).toBe(404);
       expect(res.body).toEqual({ error: "Profile not found" });

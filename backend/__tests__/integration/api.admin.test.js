@@ -25,7 +25,7 @@ describe("Admin Auth API", () => {
 
       const builder = createQueryBuilderFactory();
       mockSupabase.from.mockImplementation(() =>
-        builder({ id: 1, clerk_id: "auth-123", role: "admin", name: "Admin" })
+        builder({ id: 1, user_id: "auth-123", role: "admin", name: "Admin" })
       );
 
       const res = await request(app)
@@ -46,7 +46,7 @@ describe("Admin Auth API", () => {
 
       const builder = createQueryBuilderFactory();
       mockSupabase.from.mockImplementation(() =>
-        builder({ id: 2, clerk_id: "auth-456", role: "user" })
+        builder({ id: 2, user_id: "auth-456", role: "user" })
       );
 
       const res = await request(app)

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useUser } from "../context/useUser";
 import { useApp } from "../context/useApp";
@@ -71,6 +71,8 @@ const PAYMENT_LABELS: Record<string, { icon: string; label: string }> = {
   net_banking: { icon: "🏦", label: "Net Banking" },
 };
 
+const CHECKOUT_PENDING_KEY = "sarada_checkout_pending";
+
 const listVariants: Variants = {
   hidden: {},
   visible: {
@@ -88,6 +90,8 @@ const itemVariants: Variants = {
 };
 
 export default function OrdersPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { user, isLoaded } = useUser();
   const {
     cart,
@@ -120,6 +124,34 @@ export default function OrdersPage() {
     message: string;
     details: Array<{ name: string; ok: boolean; detail?: string }>;
   } | null>(null);
+
+  const shouldResumeCheckout = location.search.includes("checkout=1");
+
+  const handleRequireAuth = useCallback(() => {
+    const nextSearch = location.search
+      ? `${location.search}&checkout=1`
+      : "?checkout=1";
+    navigate("/shopping/auth", {
+      state: {
+        from: {
+          pathname: location.pathname,
+          search: nextSearch,
+        },
+      },
+    });
+  }, [location.pathname, location.search, navigate]);
+
+  const handleGuestCheckout = useCallback(() => {
+    localStorage.setItem(CHECKOUT_PENDING_KEY, "1");
+    handleRequireAuth();
+  }, [handleRequireAuth]);
+
+  useEffect(() => {
+    if (shouldResumeCheckout) {
+      setShowCheckout(true);
+      setCheckoutStep("address");
+    }
+  }, [shouldResumeCheckout]);
 
   // Validate address — all required fields must be non-empty with proper format
   const isAddressValid = useCallback(() => {
@@ -168,35 +200,40 @@ export default function OrdersPage() {
 
   // Order items state (expandable)
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
-  const [orderItemsMap, setOrderItemsMap] = useState<Record<number, OrderItem[]>>({});
+  const [orderItemsMap, setOrderItemsMap] = useState<
+    Record<number, OrderItem[]>
+  >({});
   const [loadingItems, setLoadingItems] = useState<Set<number>>(new Set());
 
   // Toggle order items: fetch if not loaded, then expand/collapse
-  const toggleOrderItems = useCallback(async (orderId: number) => {
-    if (expandedOrderId === orderId) {
-      setExpandedOrderId(null);
-      return;
-    }
-
-    setExpandedOrderId(orderId);
-
-    // Fetch items if not already cached
-    if (!orderItemsMap[orderId]) {
-      setLoadingItems((prev) => new Set(prev).add(orderId));
-      try {
-        const items = await api.getOrderItems(orderId);
-        setOrderItemsMap((prev) => ({ ...prev, [orderId]: items }));
-      } catch {
-        setOrderItemsMap((prev) => ({ ...prev, [orderId]: [] }));
-      } finally {
-        setLoadingItems((prev) => {
-          const next = new Set(prev);
-          next.delete(orderId);
-          return next;
-        });
+  const toggleOrderItems = useCallback(
+    async (orderId: number) => {
+      if (expandedOrderId === orderId) {
+        setExpandedOrderId(null);
+        return;
       }
-    }
-  }, [expandedOrderId, orderItemsMap]);
+
+      setExpandedOrderId(orderId);
+
+      // Fetch items if not already cached
+      if (!orderItemsMap[orderId]) {
+        setLoadingItems((prev) => new Set(prev).add(orderId));
+        try {
+          const items = await api.getOrderItems(orderId);
+          setOrderItemsMap((prev) => ({ ...prev, [orderId]: items }));
+        } catch {
+          setOrderItemsMap((prev) => ({ ...prev, [orderId]: [] }));
+        } finally {
+          setLoadingItems((prev) => {
+            const next = new Set(prev);
+            next.delete(orderId);
+            return next;
+          });
+        }
+      }
+    },
+    [expandedOrderId, orderItemsMap],
+  );
 
   // Payment data for orders
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -500,8 +537,14 @@ export default function OrdersPage() {
                     >
                       {!isLoaded || !user ? (
                         <p className="checkout-login-warning">
-                          <Link to="/shopping/auth">Sign in</Link> to proceed with
-                          checkout.
+                          <button
+                            type="button"
+                            className="btn btn-link"
+                            onClick={handleGuestCheckout}
+                          >
+                            Sign in
+                          </button>{" "}
+                          to proceed with checkout.
                         </p>
                       ) : (
                         <>
@@ -1045,7 +1088,13 @@ export default function OrdersPage() {
                           className="btn btn-primary btn-full"
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.97 }}
-                          onClick={() => setShowCheckout(true)}
+                          onClick={() => {
+                            if (!user) {
+                              handleGuestCheckout();
+                              return;
+                            }
+                            setShowCheckout(true);
+                          }}
                         >
                           Proceed to Checkout
                         </motion.button>
@@ -1177,12 +1226,15 @@ export default function OrdersPage() {
                             </div>
                             {payment && (
                               <div className="order-detail">
-                                <span className="order-detail-label">Payment</span>
+                                <span className="order-detail-label">
+                                  Payment
+                                </span>
                                 <span className="order-detail-value order-detail-value--payment">
                                   <span
                                     className={`payment-badge payment-badge--${payment.payment_method}`}
                                   >
-                                    {pmInfo?.icon} {pmInfo?.label ?? payment.payment_method}
+                                    {pmInfo?.icon}{" "}
+                                    {pmInfo?.label ?? payment.payment_method}
                                   </span>
                                   <span
                                     className={`payment-status-dot payment-status-dot--${payment.payment_status.toLowerCase()}`}
@@ -1196,7 +1248,10 @@ export default function OrdersPage() {
                             <div className="order-expand-indicator">
                               <motion.span
                                 animate={{ rotate: isExpanded ? 180 : 0 }}
-                                transition={{ duration: 0.25, ease: "easeInOut" }}
+                                transition={{
+                                  duration: 0.25,
+                                  ease: "easeInOut",
+                                }}
                                 className="order-expand-arrow"
                               >
                                 ▼
@@ -1225,11 +1280,16 @@ export default function OrdersPage() {
                             >
                               <div className="order-items-divider" />
                               {isLoadingItems ? (
-                                <div className="order-items-loading">Loading items...</div>
+                                <div className="order-items-loading">
+                                  Loading items...
+                                </div>
                               ) : items && items.length > 0 ? (
                                 <div className="order-items-list">
                                   {items.map((item) => (
-                                    <div key={item.id} className="order-item-row">
+                                    <div
+                                      key={item.id}
+                                      className="order-item-row"
+                                    >
                                       <div className="order-item-image">
                                         {item.products?.image_url ? (
                                           <img
@@ -1237,19 +1297,26 @@ export default function OrdersPage() {
                                             alt={item.products.product_name}
                                           />
                                         ) : (
-                                          <div className="order-item-image-fallback">📦</div>
+                                          <div className="order-item-image-fallback">
+                                            📦
+                                          </div>
                                         )}
                                       </div>
                                       <div className="order-item-info">
                                         <span className="order-item-name">
-                                          {item.products?.product_name ?? `Product #${item.product_id}`}
+                                          {item.products?.product_name ??
+                                            `Product #${item.product_id}`}
                                         </span>
                                         <span className="order-item-meta">
-                                          ₹{item.price.toFixed(2)} × {item.quantity}
+                                          ₹{item.price.toFixed(2)} ×{" "}
+                                          {item.quantity}
                                         </span>
                                       </div>
                                       <div className="order-item-total">
-                                        ₹{(item.price * item.quantity).toFixed(2)}
+                                        ₹
+                                        {(item.price * item.quantity).toFixed(
+                                          2,
+                                        )}
                                       </div>
                                     </div>
                                   ))}

@@ -80,7 +80,7 @@ async function createAdmin() {
   const { data: existingProfile } = await supabase
     .from("profiles")
     .select("id")
-    .eq("clerk_id", userId)
+    .eq("user_id", userId)
     .single();
 
   if (existingProfile) {
@@ -91,7 +91,7 @@ async function createAdmin() {
         role: "admin",
         updated_at: new Date().toISOString(),
       })
-      .eq("clerk_id", userId);
+      .eq("user_id", userId);
 
     if (updateError) {
       console.error(`     ❌ Failed to update profile: ${updateError.message}\n`);
@@ -105,9 +105,9 @@ async function createAdmin() {
       .from("profiles")
       .insert([
         {
-          clerk_id: userId,
+          user_id: userId,
           role: "admin",
-          name: "Admin",
+          first_name: "Admin",
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },

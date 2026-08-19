@@ -7,7 +7,15 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "jest --verbose",
-    "test:watch": "jest --watch --verbose"
+    "test:watch": "jest --watch --verbose",
+    "seed:dummy": "node scripts/seed-dummy-products.js",
+    "seed:dummy:clean": "node scripts/seed-dummy-products.js --clean",
+    "seed:users": "node scripts/seed-dummy-users.js",
+    "seed:users:clean": "node scripts/seed-dummy-users.js --clean",
+    "seed:suppliers": "node scripts/seed-dummy-suppliers.js",
+    "seed:suppliers:clean": "node scripts/seed-dummy-suppliers.js --clean",
+    "seed:all": "node scripts/seed-dummy-suppliers.js && node scripts/seed-dummy-users.js",
+    "seed:all:clean": "node scripts/seed-dummy-users.js --clean && node scripts/seed-dummy-suppliers.js --clean"
   },
   "keywords": [],
   "author": "",
@@ -18,7 +26,8 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "multer": "^2.2.0"
+    "multer": "^2.2.0",
+    "ws": "^8.21.1"
   },
   "devDependencies": {
     "jest": "^30.4.2",

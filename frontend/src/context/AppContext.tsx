@@ -1,4 +1,10 @@
-import { useState, useCallback, useEffect, useRef, type ReactNode } from "react";
+import {
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  type ReactNode,
+} from "react";
 import { AppContext } from "./AppContextValue";
 import { useUser } from "./useUser";
 import { api } from "../lib/api";
@@ -6,24 +12,7 @@ import type { CartItem } from "./AppContextTypes";
 
 const STORAGE_KEY_CART = "sarada_cart";
 const STORAGE_KEY_FAVORITES = "sarada_favorites";
-
-function loadCart(): CartItem[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_CART);
-    return raw ? (JSON.parse(raw) as CartItem[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function loadFavorites(): Set<number> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_FAVORITES);
-    return raw ? new Set<number>(JSON.parse(raw) as number[]) : new Set();
-  } catch {
-    return new Set();
-  }
-}
+const CHECKOUT_PENDING_KEY = "sarada_checkout_pending";
 
 function saveCart(cart: CartItem[]) {
   try {
@@ -44,11 +33,24 @@ function saveFavorites(favorites: Set<number>) {
   }
 }
 
+type CartItemBackendWithProduct = {
+  id: number;
+  cart_id: number;
+  product_id: number;
+  quantity: number;
+  created_at: string;
+  products?: {
+    product_name: string;
+    price: number;
+    image_url: string | null;
+  } | null;
+};
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const { user, isLoaded } = useUser();
 
-  const [cart, setCart] = useState<CartItem[]>(loadCart);
-  const [favorites, setFavorites] = useState<Set<number>>(loadFavorites);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [favorites, setFavorites] = useState<Set<number>>(new Set());
 
   // Backend sync state
   const [isOnline, setIsOnline] = useState(false);
@@ -57,6 +59,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const backendItemIdsRef = useRef<Record<number, number>>({});
   // Ref to track latest cart quantities (avoids stale closure issues)
   const cartQuantitiesRef = useRef<Record<string, number>>({});
+  const prevUserRef = useRef<{ id: string; email: string } | null>(null);
 
   // Keep quantities ref in sync with cart state
   useEffect(() => {
@@ -67,22 +70,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     cartQuantitiesRef.current = q;
   }, [cart]);
 
-  // ── On user sign-in: merge local cart into backend ──
-  useEffect(() => {
-    if (!isLoaded) return;
-
-    if (user) {
-      syncCartOnLogin(user.id);
-    } else {
-      // User signed out — revert to local-only
-      setIsOnline(false);
-      setBackendCartId(null);
-      backendItemIdsRef.current = {};
-      // Cart stays in state (preserved for next anonymous session)
-    }
-  }, [user?.id, isLoaded]);
-
-  async function syncCartOnLogin(userId: string) {
+  const syncCartOnLogin = useCallback(async (userId: string) => {
     try {
       // 1. Find or create backend cart
       let cartId: number;
@@ -99,7 +87,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       // 2. Get existing backend items
       const backendItems = await api.getCartItemsByCartId(cartId);
-      const backendByProduct: Record<number, { id: number; quantity: number }> = {};
+      const backendByProduct: Record<number, { id: number; quantity: number }> =
+        {};
       for (const bi of backendItems) {
         backendByProduct[bi.product_id] = { id: bi.id, quantity: bi.quantity };
       }
@@ -111,8 +100,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       backendItemIdsRef.current = idMap;
 
-      // 4. Merge local cart into backend
-      const localItems = loadCart();
+      // 4. Merge current in-memory cart into backend
+      const localItems = cart;
       if (localItems.length > 0) {
         for (const item of localItems) {
           const existingBackend = backendByProduct[item.productId];
@@ -124,7 +113,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }
           } else {
             // Add new item to backend
-            const response = await api.createCartItem(cartId, item.productId, item.quantity);
+            const response = await api.createCartItem(
+              cartId,
+              item.productId,
+              item.quantity,
+            );
             if (response.item?.[0]) {
               backendItemIdsRef.current[item.productId] = response.item[0].id;
             }
@@ -135,7 +128,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
 
       // 5. Reload cart from backend
-      const allItems = await api.getCartItemsByCartId(cartId);
+      const allItems = (await api.getCartItemsByCartId(
+        cartId,
+      )) as CartItemBackendWithProduct[];
       const idMapAfter: Record<number, number> = {};
       for (const bi of allItems) {
         idMapAfter[bi.product_id] = bi.id;
@@ -146,10 +141,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const mergedCart: CartItem[] = allItems.map((bi) => ({
         id: `backend-${bi.product_id}`,
         productId: bi.product_id,
-        name: (bi as any).products?.product_name ?? `Product #${bi.product_id}`,
-        price: (bi as any).products?.price ?? 0,
+        name: bi.products?.product_name ?? `Product #${bi.product_id}`,
+        price: bi.products?.price ?? 0,
         quantity: bi.quantity,
-        image: (bi as any).products?.image_url ?? "",
+        image: bi.products?.image_url ?? "",
         category: "",
       }));
 
@@ -159,19 +154,45 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.warn("Cart sync failed, falling back to local:", err);
       setIsOnline(false);
     }
-  }
+  }, []);
+
+  // ── On user sign-in/sign-out: merge local cart into backend and clear sensitive state on sign out ──
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    if (user) {
+      const doSync = async () => {
+        await syncCartOnLogin(user.id);
+      };
+      void doSync();
+      return;
+    }
+
+    // No authenticated user: clear all user-specific state on sign out,
+    // and clear any persisted storage so anonymous state is zero across page loads.
+    localStorage.removeItem(STORAGE_KEY_CART);
+    localStorage.removeItem(STORAGE_KEY_FAVORITES);
+    localStorage.removeItem(CHECKOUT_PENDING_KEY);
+    setCart([]);
+    setFavorites(new Set());
+    setIsOnline(false);
+    setBackendCartId(null);
+    backendItemIdsRef.current = {};
+  }, [user, isLoaded, syncCartOnLogin]);
 
   // ── Persist cart to localStorage (only when offline) ──
   useEffect(() => {
-    if (!isOnline) {
+    if (!isOnline && user) {
       saveCart(cart);
     }
-  }, [cart, isOnline]);
+  }, [cart, isOnline, user]);
 
-  // Persist favorites to localStorage (always)
+  // Persist favorites to localStorage only for authenticated or returning users.
   useEffect(() => {
-    saveFavorites(favorites);
-  }, [favorites]);
+    if (user) {
+      saveFavorites(favorites);
+    }
+  }, [favorites, user]);
 
   // ── Cart Operations ──
 
@@ -182,7 +203,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const existing = prev.find((i) => i.id === item.id);
         if (existing) {
           return prev.map((i) =>
-            i.id === item.id ? { ...i, quantity: i.quantity + item.quantity } : i,
+            i.id === item.id
+              ? { ...i, quantity: i.quantity + item.quantity }
+              : i,
           );
         }
         return [...prev, item];
@@ -197,7 +220,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const newQty = currentQty + item.quantity;
             await api.updateCartItem(existingBackendId, newQty);
           } else {
-            const response = await api.createCartItem(backendCartId, item.productId, item.quantity);
+            const response = await api.createCartItem(
+              backendCartId,
+              item.productId,
+              item.quantity,
+            );
             if (response.item?.[0]) {
               backendItemIdsRef.current[item.productId] = response.item[0].id;
             }
@@ -213,9 +240,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const removeFromCart = useCallback(
     async (id: string) => {
       // Find the productId from the ref before removing
-      const productId = cartQuantitiesRef.current[id] !== undefined
-        ? cart.find((i) => i.id === id)?.productId
-        : undefined;
+      const productId =
+        cartQuantitiesRef.current[id] !== undefined
+          ? cart.find((i) => i.id === id)?.productId
+          : undefined;
 
       // Update local state immediately
       setCart((prev) => prev.filter((i) => i.id !== id));
@@ -266,9 +294,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } else {
         // Update local quantity
         setCart((prev) =>
-          prev.map((i) =>
-            i.id === id ? { ...i, quantity: newQty } : i,
-          ),
+          prev.map((i) => (i.id === id ? { ...i, quantity: newQty } : i)),
         );
 
         // Sync to backend

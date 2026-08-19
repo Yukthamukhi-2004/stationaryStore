@@ -34,7 +34,7 @@ const headerVariants: Variants = {
   },
 };
 
-const BACKEND_CATEGORY_IDS = [2]; // DB category 2 = Books
+const BACKEND_CATEGORY_IDS = [127]; // DB category 127 = Books
 
 export default function BooksPage() {
   const [products, setProducts] = useState<ProductItem[]>([]);
@@ -43,10 +43,8 @@ export default function BooksPage() {
   useEffect(() => {
     async function load() {
       try {
-        const backendProducts = await api.getProducts();
-        const filtered = backendProducts
-          .filter((p) => p.category_id && BACKEND_CATEGORY_IDS.includes(p.category_id))
-          .map((p) => mapBackendProduct(p, "books"));
+        const backendProducts = await api.getProductsByCategory(BACKEND_CATEGORY_IDS[0]);
+        const filtered = backendProducts.map((p) => mapBackendProduct(p, "books"));
         setProducts(filtered.length > 0 ? filtered : fallbackProducts);
       } catch {
         setProducts(fallbackProducts);

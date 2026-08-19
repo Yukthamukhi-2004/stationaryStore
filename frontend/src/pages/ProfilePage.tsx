@@ -43,12 +43,10 @@ export default function ProfilePage() {
   const [signingOut, setSigningOut] = useState(false);
   const [profile, setProfile] = useState<{
     id: number;
-    clerk_id: string;
+    user_id: string;
+    email: string | null;
     name: string | null;
     role: string | null;
-    age: number | null;
-    profession: string | null;
-    address: string | null;
     created_at: string | null;
     updated_at: string | null;
   } | null>(null);
@@ -65,9 +63,8 @@ export default function ProfilePage() {
   }, [user]);
 
   // Editable personal details (localStorage-backed)
-  const [personalDetails, setPersonalDetails] = useState<PersonalDetails>(
-    loadPersonalDetails,
-  );
+  const [personalDetails, setPersonalDetails] =
+    useState<PersonalDetails>(loadPersonalDetails);
   const [savingDetails, setSavingDetails] = useState(false);
   const [detailsSaved, setDetailsSaved] = useState(false);
   const [detailsSyncError, setDetailsSyncError] = useState<string | null>(null);
@@ -154,12 +151,34 @@ export default function ProfilePage() {
               <span className="badge">{profile?.role ?? "Member"}</span>
             </div>
             <div style={{ marginTop: "0.75rem" }}>
-              <button
-                className="btn btn-outline btn-sm"
-                onClick={() => setShowSignOutModal(true)}
-              >
-                Sign Out
-              </button>
+              {user ? (
+                <button
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setShowSignOutModal(true)}
+                >
+                  Sign Out
+                </button>
+              ) : (
+                <div className="profile-auth-actions">
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() =>
+                      navigate("/shopping/auth", { state: { mode: "sign-in" } })
+                    }
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    style={{ marginLeft: "0.75rem" }}
+                    onClick={() =>
+                      navigate("/shopping/auth", { state: { mode: "sign-up" } })
+                    }
+                  >
+                    Sign Up
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -226,7 +245,8 @@ export default function ProfilePage() {
             >
               <h2>Account Info</h2>
               <p className="status-message">
-                <Link to="/shopping/auth">Sign in</Link> to see your profile details.
+                <Link to="/shopping/auth">Sign in</Link> to see your profile
+                details.
               </p>
             </motion.div>
           )}
@@ -334,8 +354,7 @@ export default function ProfilePage() {
                             : null;
                           const payload: Record<string, unknown> = {
                             age: ageNum,
-                            profession:
-                              personalDetails.profession || null,
+                            profession: personalDetails.profession || null,
                             address: personalDetails.address || null,
                           };
                           // Only send name when it actually changed (avoid overwriting with null)
@@ -363,9 +382,7 @@ export default function ProfilePage() {
                         : "Save Details"}
                   </motion.button>
                   {detailsSyncError && (
-                    <p className="personal-details-error">
-                      {detailsSyncError}
-                    </p>
+                    <p className="personal-details-error">{detailsSyncError}</p>
                   )}
                 </div>
               </div>

@@ -4,7 +4,8 @@ const supabase = require("../config/supabase");
 const getProducts = async (req, res) => {
   try {
     const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 20;
+    // Default limit is high so the admin & load-test views see every product.
+    const limit = Number(req.query.limit) || 10000;
 
     const start = (page - 1) * limit;
     const end = start + limit - 1;

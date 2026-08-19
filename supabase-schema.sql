@@ -12,12 +12,12 @@
 -- 1. Profiles table (linked to Supabase Auth users)
 CREATE TABLE IF NOT EXISTS public.profiles (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  clerk_id TEXT UNIQUE NOT NULL,
+  user_id TEXT UNIQUE NOT NULL,
+  email TEXT,
+  first_name TEXT,
+  last_name TEXT,
+  avatar_url TEXT,
   role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
-  name TEXT,
-  age INTEGER,
-  profession TEXT,
-  address TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -39,6 +39,25 @@ CREATE TABLE IF NOT EXISTS public.products (
   price NUMERIC(10, 2) NOT NULL DEFAULT 0,
   stock_quantity INTEGER NOT NULL DEFAULT 0,
   image_url TEXT,
+  brand TEXT,
+  sku TEXT,
+  rating NUMERIC(3, 2),
+  is_featured BOOLEAN DEFAULT FALSE,
+  reorder_level INTEGER DEFAULT 10,
+  last_stock_update TIMESTAMPTZ,
+  supplier_id BIGINT REFERENCES public.suppliers(id) ON DELETE SET NULL,
+  supplier_name TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3b. Suppliers table
+CREATE TABLE IF NOT EXISTS public.suppliers (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  supplier_name TEXT NOT NULL,
+  contact_person TEXT,
+  phone TEXT,
+  email TEXT,
+  city TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -22,26 +22,35 @@ function mockRes() {
 describe("getProfile", () => {
   beforeEach(resetMocks);
 
-  it("returns a profile by user_id", async () => {
+  it("returns a profile by user_id (mapped with derived name)", async () => {
     const req = { params: { user_id: "clerk-123" } };
     const res = mockRes();
     const mockBuilder = createQueryBuilderFactory();
 
     const profile = {
       id: 1,
-      clerk_id: "clerk-123",
+      user_id: "clerk-123",
+      email: "john@example.com",
+      first_name: "John",
+      last_name: "Doe",
       role: "user",
-      name: "John Doe",
-      age: 25,
-      profession: "Student",
-      address: "123 Main St",
+      created_at: "2024-01-01T00:00:00Z",
+      updated_at: "2024-01-01T00:00:00Z",
     };
     mockSupabase.from.mockImplementation(() => mockBuilder(profile));
 
     await getProfile(req, res);
 
     expect(mockSupabase.from).toHaveBeenCalledWith("profiles");
-    expect(res.json).toHaveBeenCalledWith(profile);
+    expect(res.json).toHaveBeenCalledWith({
+      id: 1,
+      user_id: "clerk-123",
+      email: "john@example.com",
+      name: "John Doe",
+      role: "user",
+      created_at: "2024-01-01T00:00:00Z",
+      updated_at: "2024-01-01T00:00:00Z",
+    });
   });
 
   it("returns 400 when user_id is missing", async () => {
@@ -92,18 +101,20 @@ describe("updateProfile", () => {
   it("updates a profile successfully with allowed fields", async () => {
     const req = {
       params: { user_id: "clerk-123" },
-      body: { role: "admin", age: 26, profession: "Developer", address: "456 Oak St" },
+      body: { role: "admin", name: "Jane Doe" },
     };
     const res = mockRes();
     const mockBuilder = createQueryBuilderFactory();
 
     const updated = [{
       id: 1,
-      clerk_id: "clerk-123",
+      user_id: "clerk-123",
+      email: null,
+      first_name: "Jane",
+      last_name: "Doe",
       role: "admin",
-      age: 26,
-      profession: "Developer",
-      address: "456 Oak St",
+      created_at: "2024-01-01T00:00:00Z",
+      updated_at: "2024-01-01T00:00:00Z",
     }];
     mockSupabase.from.mockImplementation(() => mockBuilder(updated));
 
@@ -112,12 +123,20 @@ describe("updateProfile", () => {
     expect(mockSupabase.from).toHaveBeenCalledWith("profiles");
     expect(res.json).toHaveBeenCalledWith({
       message: "Profile updated successfully",
-      profile: updated[0],
+      profile: {
+        id: 1,
+        user_id: "clerk-123",
+        email: null,
+        name: "Jane Doe",
+        role: "admin",
+        created_at: "2024-01-01T00:00:00Z",
+        updated_at: "2024-01-01T00:00:00Z",
+      },
     });
   });
 
   it("returns 400 when user_id is missing", async () => {
-    const req = { params: {}, body: { age: 26 } };
+    const req = { params: {}, body: { role: "admin" } };
     const res = mockRes();
 
     await updateProfile(req, res);
@@ -129,7 +148,7 @@ describe("updateProfile", () => {
   it("returns 400 when no valid fields provided", async () => {
     const req = {
       params: { user_id: "clerk-123" },
-      body: { invalid_field: "value" },
+      body: { age: 26, profession: "Developer", address: "123 Main St" },
     };
     const res = mockRes();
 
@@ -142,27 +161,35 @@ describe("updateProfile", () => {
   it("strips out non-allowed fields from update payload", async () => {
     const req = {
       params: { user_id: "clerk-123" },
-      body: { age: 30, clerk_id: "hacker-999", name: "Should Not Update" },
+      body: { age: 30, profession: "Engineer", name: "Jane Doe" },
     };
     const res = mockRes();
     const mockBuilder = createQueryBuilderFactory();
 
-    const updated = [{ id: 1, clerk_id: "clerk-123", age: 30 }];
+    const updated = [{ id: 1, user_id: "clerk-123", first_name: "Jane", last_name: "Doe", role: "user" }];
     mockSupabase.from.mockImplementation(() => mockBuilder(updated));
 
     await updateProfile(req, res);
 
-    // Only 'age' is an allowed field; clerk_id and name should be stripped
+    // Only `name` is an allowed field; age/profession are stripped
     expect(res.json).toHaveBeenCalledWith({
       message: "Profile updated successfully",
-      profile: updated[0],
+      profile: {
+        id: 1,
+        user_id: "clerk-123",
+        email: null,
+        name: "Jane Doe",
+        role: "user",
+        created_at: null,
+        updated_at: null,
+      },
     });
   });
 
   it("returns 404 when profile not found (empty data)", async () => {
     const req = {
       params: { user_id: "nonexistent" },
-      body: { age: 30 },
+      body: { name: "Jane" },
     };
     const res = mockRes();
     const mockBuilder = createQueryBuilderFactory();
@@ -178,7 +205,7 @@ describe("updateProfile", () => {
   it("returns 500 on Supabase error", async () => {
     const req = {
       params: { user_id: "clerk-123" },
-      body: { age: 30 },
+      body: { role: "admin" },
     };
     const res = mockRes();
     const mockBuilder = createQueryBuilderFactory();

@@ -31,11 +31,10 @@ const verifyAdmin = async (req, res) => {
     }
 
     // Look up the user's profile using their Supabase user ID
-    // The profiles table stores the Supabase user ID in the `clerk_id` column
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("*")
-      .eq("clerk_id", user.id)
+      .eq("user_id", user.id)
       .single();
 
     if (profileError && profileError.code !== "PGRST116") {
@@ -99,7 +98,7 @@ const setAdminRole = async (req, res) => {
     const { data: existing } = await supabase
       .from("profiles")
       .select("id")
-      .eq("clerk_id", user_id)
+      .eq("user_id", user_id)
       .single();
 
     if (existing) {
@@ -107,7 +106,7 @@ const setAdminRole = async (req, res) => {
       const { error } = await supabase
         .from("profiles")
         .update({ role: "admin", updated_at: new Date().toISOString() })
-        .eq("clerk_id", user_id);
+        .eq("user_id", user_id);
 
       if (error) {
         return res.status(500).json({ error: error.message });
@@ -116,7 +115,7 @@ const setAdminRole = async (req, res) => {
       // Create new profile with admin role
       const { error } = await supabase.from("profiles").insert([
         {
-          clerk_id: user_id,
+          user_id,
           role: "admin",
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),

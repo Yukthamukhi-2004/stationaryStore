@@ -43,10 +43,8 @@ export default function ArtMaterialsPage() {
   useEffect(() => {
     async function load() {
       try {
-        const backendProducts = await api.getProducts();
-        const filtered = backendProducts
-          .filter((p) => p.category_id && BACKEND_CATEGORY_IDS.includes(p.category_id))
-          .map((p) => mapBackendProduct(p, "art-materials"));
+        const backendProducts = await api.getProductsByCategory(BACKEND_CATEGORY_IDS[0]);
+        const filtered = backendProducts.map((p) => mapBackendProduct(p, "art-materials"));
         setProducts(filtered.length > 0 ? filtered : fallbackProducts);
       } catch {
         setProducts(fallbackProducts);

@@ -125,8 +125,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // Create a profile in the backend with the user's name
       try {
         await api.createProfile({
-          clerk_id: data.user.id,
+          user_id: data.user.id,
           name,
+          email: data.user.email ?? null,
         });
       } catch (profileErr) {
         // Profile creation failure is non-fatal — the user can set their name later

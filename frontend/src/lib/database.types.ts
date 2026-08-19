@@ -12,32 +12,32 @@ export interface Database {
       profiles: {
         Row: {
           id: number;
-          clerk_id: string;
+          user_id: string;
+          email: string | null;
+          first_name: string | null;
+          last_name: string | null;
+          avatar_url: string | null;
           role: string;
-          name: string | null;
-          age: number | null;
-          profession: string | null;
-          address: string | null;
           created_at: string | null;
           updated_at: string | null;
         };
         Insert: {
-          clerk_id: string;
+          user_id: string;
+          email?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
+          avatar_url?: string | null;
           role?: string;
-          name?: string | null;
-          age?: number | null;
-          profession?: string | null;
-          address?: string | null;
           created_at?: string | null;
           updated_at?: string | null;
         };
         Update: {
-          clerk_id?: string;
+          user_id?: string;
+          email?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
+          avatar_url?: string | null;
           role?: string;
-          name?: string | null;
-          age?: number | null;
-          profession?: string | null;
-          address?: string | null;
           created_at?: string | null;
           updated_at?: string | null;
         };
