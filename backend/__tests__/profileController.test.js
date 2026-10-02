@@ -1,4 +1,7 @@
-const { getProfile, updateProfile } = require("../controllers/profileController");
+const {
+  getProfile,
+  updateProfile,
+} = require("../controllers/profileController");
 
 jest.mock("../config/supabase", () => ({
   from: jest.fn(),
@@ -70,7 +73,7 @@ describe("getProfile", () => {
 
     // Supabase returns PGRST116 when no rows match .single()
     mockSupabase.from.mockImplementation(() =>
-      mockBuilder(null, { code: "PGRST116", message: "No rows found" })
+      mockBuilder(null, { code: "PGRST116", message: "No rows found" }),
     );
 
     await getProfile(req, res);
@@ -85,7 +88,7 @@ describe("getProfile", () => {
     const mockBuilder = createQueryBuilderFactory();
 
     mockSupabase.from.mockImplementation(() =>
-      mockBuilder(null, { code: "OTHER", message: "DB error" })
+      mockBuilder(null, { code: "OTHER", message: "DB error" }),
     );
 
     await getProfile(req, res);
@@ -98,40 +101,17 @@ describe("getProfile", () => {
 describe("updateProfile", () => {
   beforeEach(resetMocks);
 
-  it("updates a profile successfully with allowed fields", async () => {
+  it("rejects profile role changes", async () => {
     const req = {
       params: { user_id: "clerk-123" },
       body: { role: "admin", name: "Jane Doe" },
     };
     const res = mockRes();
-    const mockBuilder = createQueryBuilderFactory();
-
-    const updated = [{
-      id: 1,
-      user_id: "clerk-123",
-      email: null,
-      first_name: "Jane",
-      last_name: "Doe",
-      role: "admin",
-      created_at: "2024-01-01T00:00:00Z",
-      updated_at: "2024-01-01T00:00:00Z",
-    }];
-    mockSupabase.from.mockImplementation(() => mockBuilder(updated));
-
     await updateProfile(req, res);
 
-    expect(mockSupabase.from).toHaveBeenCalledWith("profiles");
+    expect(res.status).toHaveBeenCalledWith(403);
     expect(res.json).toHaveBeenCalledWith({
-      message: "Profile updated successfully",
-      profile: {
-        id: 1,
-        user_id: "clerk-123",
-        email: null,
-        name: "Jane Doe",
-        role: "admin",
-        created_at: "2024-01-01T00:00:00Z",
-        updated_at: "2024-01-01T00:00:00Z",
-      },
+      error: "Profile roles cannot be changed here",
     });
   });
 
@@ -155,7 +135,9 @@ describe("updateProfile", () => {
     await updateProfile(req, res);
 
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: "No valid fields to update" });
+    expect(res.json).toHaveBeenCalledWith({
+      error: "No valid fields to update",
+    });
   });
 
   it("strips out non-allowed fields from update payload", async () => {
@@ -166,7 +148,15 @@ describe("updateProfile", () => {
     const res = mockRes();
     const mockBuilder = createQueryBuilderFactory();
 
-    const updated = [{ id: 1, user_id: "clerk-123", first_name: "Jane", last_name: "Doe", role: "user" }];
+    const updated = [
+      {
+        id: 1,
+        user_id: "clerk-123",
+        first_name: "Jane",
+        last_name: "Doe",
+        role: "user",
+      },
+    ];
     mockSupabase.from.mockImplementation(() => mockBuilder(updated));
 
     await updateProfile(req, res);
@@ -205,13 +195,13 @@ describe("updateProfile", () => {
   it("returns 500 on Supabase error", async () => {
     const req = {
       params: { user_id: "clerk-123" },
-      body: { role: "admin" },
+      body: { name: "Jane Doe" },
     };
     const res = mockRes();
     const mockBuilder = createQueryBuilderFactory();
 
     mockSupabase.from.mockImplementation(() =>
-      mockBuilder(null, { message: "Update failed" })
+      mockBuilder(null, { message: "Update failed" }),
     );
 
     await updateProfile(req, res);

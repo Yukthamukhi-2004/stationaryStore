@@ -1,4 +1,5 @@
 const express = require("express");
+const { requireAdmin, requireAuth } = require("../middleware/requireAdmin");
 
 const router = express.Router();
 
@@ -7,17 +8,17 @@ const {
   createOrder,
   getOrderById,
   updateOrder,
-  getOrderItems
+  getOrderItems,
 } = require("../controllers/orderController");
 
-router.get("/", getOrders);
+router.get("/", requireAuth, getOrders);
 
-router.get("/:id", getOrderById);
+router.get("/:id", requireAuth, getOrderById);
 
-router.get("/:id/items", getOrderItems);
+router.get("/:id/items", requireAuth, getOrderItems);
 
-router.post("/", createOrder);
+router.post("/", requireAuth, createOrder);
 
-router.put("/:id", updateOrder);
+router.put("/:id", requireAdmin, updateOrder);
 
 module.exports = router;

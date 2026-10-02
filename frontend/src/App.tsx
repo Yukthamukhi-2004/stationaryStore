@@ -15,7 +15,7 @@ import OrdersPage from "./pages/OrdersPage";
 import ContactPage from "./pages/ContactPage";
 
 // ── Admin Layout & Pages ──
-import AdminLayout from "./components/AdminLayout";
+import AdminRoute from "./components/AdminRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminOrders from "./pages/admin/AdminOrders";
@@ -24,7 +24,6 @@ import AdminInventory from "./pages/admin/AdminInventory";
 import AdminLowStock from "./pages/admin/AdminLowStock";
 import AdminReorder from "./pages/admin/AdminReorder";
 import AdminPurchases from "./pages/admin/AdminPurchases";
-
 
 export default function App() {
   const location = useLocation();
@@ -58,7 +57,7 @@ export default function App() {
         {/* ═══════════════════════════════════════════════
            🔐 ADMIN — Admin management panel
            ═══════════════════════════════════════════════ */}
-        <Route path="/admin" element={<AdminLayout />}>
+        <Route path="/admin" element={<AdminRoute />}>
           {/* Redirect /admin to /admin/dashboard */}
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />

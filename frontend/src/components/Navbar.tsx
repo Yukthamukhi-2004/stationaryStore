@@ -21,6 +21,7 @@ export default function Navbar() {
   const shopDropdownRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => pathname === path;
+  const isAuthPage = pathname === "/shopping/auth";
   const isShopPage =
     pathname.startsWith("/shopping/notebooks") ||
     pathname.startsWith("/shopping/books") ||
@@ -36,7 +37,10 @@ export default function Navbar() {
   // Close mobile menu on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node)) {
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(e.target as Node)
+      ) {
         setMobileMenuOpen(false);
       }
     }
@@ -49,7 +53,10 @@ export default function Navbar() {
   // Close shop dropdown on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (shopDropdownRef.current && !shopDropdownRef.current.contains(e.target as Node)) {
+      if (
+        shopDropdownRef.current &&
+        !shopDropdownRef.current.contains(e.target as Node)
+      ) {
         setShopOpen(false);
       }
     }
@@ -82,7 +89,7 @@ export default function Navbar() {
           </div>
         </Link>
 
-        <GlobalSearch />
+        {!isAuthPage && <GlobalSearch />}
 
         {/* Hamburger Toggle — visible on mobile */}
         <button
@@ -92,7 +99,9 @@ export default function Navbar() {
           aria-expanded={mobileMenuOpen}
         >
           <motion.span
-            animate={mobileMenuOpen ? { rotate: 45, y: 6 } : { rotate: 0, y: 0 }}
+            animate={
+              mobileMenuOpen ? { rotate: 45, y: 6 } : { rotate: 0, y: 0 }
+            }
             className="hamburger-line"
           />
           <motion.span
@@ -100,7 +109,9 @@ export default function Navbar() {
             className="hamburger-line"
           />
           <motion.span
-            animate={mobileMenuOpen ? { rotate: -45, y: -6 } : { rotate: 0, y: 0 }}
+            animate={
+              mobileMenuOpen ? { rotate: -45, y: -6 } : { rotate: 0, y: 0 }
+            }
             className="hamburger-line"
           />
         </button>
@@ -220,7 +231,10 @@ export default function Navbar() {
                 to="/shopping/orders"
                 className={`navbar-mobile-link ${isActive("/shopping/orders") ? "active" : ""}`}
               >
-                📦 Orders {cartCount > 0 && <span className="mobile-badge">{cartCount}</span>}
+                📦 Orders{" "}
+                {cartCount > 0 && (
+                  <span className="mobile-badge">{cartCount}</span>
+                )}
               </Link>
               <Link
                 to="/shopping/profile"
@@ -237,7 +251,9 @@ export default function Navbar() {
               {cartCount > 0 && (
                 <div className="navbar-mobile-cart-total">
                   <span>Cart Total:</span>
-                  <span className="mobile-cart-amount">₹{cartTotal.toFixed(2)}</span>
+                  <span className="mobile-cart-amount">
+                    ₹{cartTotal.toFixed(2)}
+                  </span>
                 </div>
               )}
             </div>

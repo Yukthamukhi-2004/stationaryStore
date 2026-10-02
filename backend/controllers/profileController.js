@@ -6,10 +6,7 @@ const supabase = require("../config/supabase");
  */
 function mapProfile(row) {
   if (!row) return null;
-  const name = [row.first_name, row.last_name]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
+  const name = [row.first_name, row.last_name].filter(Boolean).join(" ").trim();
   return {
     id: row.id,
     user_id: row.user_id,
@@ -72,7 +69,11 @@ const updateProfile = async (req, res) => {
     sanitized.last_name = last_name;
   }
 
-  if (updates.role !== undefined) sanitized.role = updates.role;
+  if (updates.role !== undefined) {
+    return res
+      .status(403)
+      .json({ error: "Profile roles cannot be changed here" });
+  }
   if (updates.email !== undefined) sanitized.email = updates.email;
 
   if (Object.keys(sanitized).length === 0) {
@@ -96,7 +97,10 @@ const updateProfile = async (req, res) => {
     return res.status(404).json({ error: "Profile not found" });
   }
 
-  res.json({ message: "Profile updated successfully", profile: mapProfile(data[0]) });
+  res.json({
+    message: "Profile updated successfully",
+    profile: mapProfile(data[0]),
+  });
 };
 
 /**
@@ -125,7 +129,11 @@ const createProfile = async (req, res) => {
         const { first_name, last_name } = splitName(name);
         const { error: updateError } = await supabase
           .from("profiles")
-          .update({ first_name, last_name, updated_at: new Date().toISOString() })
+          .update({
+            first_name,
+            last_name,
+            updated_at: new Date().toISOString(),
+          })
           .eq("user_id", user_id);
 
         if (updateError) {

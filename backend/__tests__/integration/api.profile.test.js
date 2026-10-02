@@ -46,7 +46,7 @@ describe("Profile API", () => {
     it("returns 404 when profile not found (PGRST116)", async () => {
       const builder = createQueryBuilderFactory();
       mockSupabase.from.mockImplementation(() =>
-        builder(null, { code: "PGRST116", message: "No rows found" })
+        builder(null, { code: "PGRST116", message: "No rows found" }),
       );
 
       const res = await request(app).get("/profile/nonexistent");
@@ -58,22 +58,24 @@ describe("Profile API", () => {
 
   describe("PUT /profile/:user_id", () => {
     it("updates a profile with allowed fields", async () => {
-      const updated = [{
-        id: 1,
-        user_id: "clerk-123",
-        email: null,
-        first_name: "Jane",
-        last_name: "Doe",
-        role: "admin",
-        created_at: "2024-01-01T00:00:00Z",
-        updated_at: "2024-01-01T00:00:00Z",
-      }];
+      const updated = [
+        {
+          id: 1,
+          user_id: "clerk-123",
+          email: null,
+          first_name: "Jane",
+          last_name: "Doe",
+          role: "admin",
+          created_at: "2024-01-01T00:00:00Z",
+          updated_at: "2024-01-01T00:00:00Z",
+        },
+      ];
       const builder = createQueryBuilderFactory();
       mockSupabase.from.mockImplementation(() => builder(updated));
 
       const res = await request(app)
         .put("/profile/clerk-123")
-        .send({ role: "admin", name: "Jane Doe" });
+        .send({ name: "Jane Doe" });
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({

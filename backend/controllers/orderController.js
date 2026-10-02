@@ -1,14 +1,15 @@
 const supabase = require("../config/supabase");
 
 const getOrders = async (req, res) => {
-
-  const { data, error } = await supabase
-    .from("orders")
-    .select("*");
+  let query = supabase.from("orders").select("*");
+  if (req.auth.role !== "admin") {
+    query = query.eq("user_id", req.auth.user.id);
+  }
+  const { data, error } = await query;
 
   if (error) {
     return res.status(500).json({
-      error: error.message
+      error: error.message,
     });
   }
 
@@ -16,65 +17,65 @@ const getOrders = async (req, res) => {
 };
 
 const createOrder = async (req, res) => {
+  const { user_id, total_amount, status } = req.body;
 
-  const {
-    user_id,
-    total_amount,
-    status
-  } = req.body;
+  if (req.auth.role !== "admin" && user_id !== req.auth.user.id) {
+    return res
+      .status(403)
+      .json({ error: "Cannot create an order for another user" });
+  }
 
   console.log("Status received:", status);
 
   const validStatuses = [
-  "Pending",
-  "Confirmed",
-  "Packed",
-  "Shipped",
-  "Delivered",
-  "Cancelled"
-];
+    "Pending",
+    "Confirmed",
+    "Packed",
+    "Shipped",
+    "Delivered",
+    "Cancelled",
+  ];
 
-if (!validStatuses.includes(status)) {
-  return res.status(400).json({
-    message: "Invalid order status"
-  });
-}
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({
+      message: "Invalid order status",
+    });
+  }
   const { data, error } = await supabase
     .from("orders")
     .insert([
       {
         user_id,
         total_amount,
-        status
-      }
+        status,
+      },
     ])
     .select();
 
   if (error) {
     return res.status(500).json({
-      error: error.message
+      error: error.message,
     });
   }
 
   res.status(201).json({
     message: "Order Created Successfully",
-    order: data
+    order: data,
   });
 };
 
 const getOrderById = async (req, res) => {
-
   const { id } = req.params;
 
-  const { data, error } = await supabase
-    .from("orders")
-    .select("*")
-    .eq("id", id)
-    .single();
+  let query = supabase.from("orders").select("*").eq("id", id);
+  if (req.auth.role !== "admin") {
+    query = query.eq("user_id", req.auth.user.id);
+  }
+  const { data, error } = await query.single();
 
   if (error) {
     return res.status(500).json({
-      error: error.message
+      error: error.message,
     });
   }
 
@@ -88,9 +89,23 @@ const getOrderById = async (req, res) => {
 const getOrderItems = async (req, res) => {
   const { id } = req.params;
 
+  if (req.auth.role !== "admin") {
+    const { data: order, error: orderError } = await supabase
+      .from("orders")
+      .select("id")
+      .eq("id", id)
+      .eq("user_id", req.auth.user.id)
+      .single();
+
+    if (orderError || !order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+  }
+
   const { data, error } = await supabase
     .from("order_items")
-    .select(`
+    .select(
+      `
       id,
       order_id,
       product_id,
@@ -100,12 +115,13 @@ const getOrderItems = async (req, res) => {
         product_name,
         image_url
       )
-    `)
+    `,
+    )
     .eq("order_id", id);
 
   if (error) {
     return res.status(500).json({
-      error: error.message
+      error: error.message,
     });
   }
 
@@ -113,47 +129,43 @@ const getOrderItems = async (req, res) => {
 };
 
 const updateOrder = async (req, res) => {
-
   const { id } = req.params;
 
-  const {
-    total_amount,
-    status
-  } = req.body;
+  const { total_amount, status } = req.body;
 
   const validStatuses = [
-  "Pending",
-  "Confirmed",
-  "Packed",
-  "Shipped",
-  "Delivered",
-  "Cancelled"
-];
+    "Pending",
+    "Confirmed",
+    "Packed",
+    "Shipped",
+    "Delivered",
+    "Cancelled",
+  ];
 
-if (!validStatuses.includes(status)) {
-  return res.status(400).json({
-    message: "Invalid order status"
-  });
-}
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({
+      message: "Invalid order status",
+    });
+  }
 
   const { data, error } = await supabase
     .from("orders")
     .update({
       total_amount,
-      status
+      status,
     })
     .eq("id", id)
     .select();
 
   if (error) {
     return res.status(500).json({
-      error: error.message
+      error: error.message,
     });
   }
 
   res.json({
     message: "Order Updated Successfully",
-    order: data
+    order: data,
   });
 };
 
@@ -162,5 +174,5 @@ module.exports = {
   createOrder,
   getOrderById,
   updateOrder,
-  getOrderItems
+  getOrderItems,
 };

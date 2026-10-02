@@ -2,12 +2,28 @@ const request = require("supertest");
 
 jest.mock("../../config/supabase", () => ({
   from: jest.fn(),
-  auth: {},
+  auth: { getUser: jest.fn() },
 }));
 
 const app = require("../../server");
 const mockSupabase = require("../../config/supabase");
 const { createQueryBuilderFactory } = require("../helpers/supabaseMock");
+
+function mockUser(fromImplementation, role = "user") {
+  mockSupabase.auth.getUser.mockResolvedValue({
+    data: { user: { id: "user-1", email: "user@example.com" } },
+    error: null,
+  });
+  const builder = createQueryBuilderFactory();
+  mockSupabase.from.mockImplementation((table, ...args) => {
+    if (table === "profiles") return builder({ role });
+    return fromImplementation(table, ...args);
+  });
+}
+
+function withToken(req) {
+  return req.set("Authorization", "Bearer test-token");
+}
 
 describe("Orders API", () => {
   beforeEach(() => {
@@ -21,21 +37,19 @@ describe("Orders API", () => {
         { id: 2, user_id: "user-2", total_amount: 200, status: "Shipped" },
       ];
       const builder = createQueryBuilderFactory();
-      mockSupabase.from.mockImplementation(() => builder(orders));
+      mockUser(() => builder(orders));
 
-      const res = await request(app).get("/orders");
+      const res = await withToken(request(app).get("/orders"));
 
       expect(res.status).toBe(200);
-      expect(res.body).toEqual(orders);
+      expect(res.body).toEqual([orders[0]]);
     });
 
     it("returns 500 on Supabase error", async () => {
       const builder = createQueryBuilderFactory();
-      mockSupabase.from.mockImplementation(() =>
-        builder(null, { message: "DB error" })
-      );
+      mockUser((table) => builder(null, { message: "DB error" }));
 
-      const res = await request(app).get("/orders");
+      const res = await withToken(request(app).get("/orders"));
 
       expect(res.status).toBe(500);
       expect(res.body).toEqual({ error: "DB error" });
@@ -44,11 +58,16 @@ describe("Orders API", () => {
 
   describe("GET /orders/:id", () => {
     it("returns an order by id", async () => {
-      const order = { id: 1, user_id: "user-1", total_amount: 100, status: "Placed" };
+      const order = {
+        id: 1,
+        user_id: "user-1",
+        total_amount: 100,
+        status: "Placed",
+      };
       const builder = createQueryBuilderFactory();
-      mockSupabase.from.mockImplementation(() => builder(order));
+      mockUser(() => builder(order));
 
-      const res = await request(app).get("/orders/1");
+      const res = await withToken(request(app).get("/orders/1"));
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual(order);
@@ -57,13 +76,17 @@ describe("Orders API", () => {
 
   describe("POST /orders", () => {
     it("creates an order", async () => {
-      const newOrder = [{ id: 3, user_id: "user-1", total_amount: 150, status: "Pending" }];
+      const newOrder = [
+        { id: 3, user_id: "user-1", total_amount: 150, status: "Pending" },
+      ];
       const builder = createQueryBuilderFactory();
-      mockSupabase.from.mockImplementation(() => builder(newOrder));
+      mockUser(() => builder(newOrder));
 
-      const res = await request(app)
-        .post("/orders")
-        .send({ user_id: "user-1", total_amount: 150, status: "Pending" });
+      const res = await withToken(
+        request(app)
+          .post("/orders")
+          .send({ user_id: "user-1", total_amount: 150, status: "Pending" }),
+      );
 
       expect(res.status).toBe(201);
       expect(res.body).toEqual({
@@ -75,13 +98,17 @@ describe("Orders API", () => {
 
   describe("PUT /orders/:id", () => {
     it("updates an order", async () => {
-      const updated = [{ id: 1, user_id: "user-1", total_amount: 200, status: "Shipped" }];
+      const updated = [
+        { id: 1, user_id: "user-1", total_amount: 200, status: "Shipped" },
+      ];
       const builder = createQueryBuilderFactory();
-      mockSupabase.from.mockImplementation(() => builder(updated));
+      mockUser(() => builder(updated), "admin");
 
-      const res = await request(app)
-        .put("/orders/1")
-        .send({ total_amount: 200, status: "Shipped" });
+      const res = await withToken(
+        request(app)
+          .put("/orders/1")
+          .send({ total_amount: 200, status: "Shipped" }),
+      );
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({
@@ -100,8 +127,20 @@ describe("Payments API", () => {
   describe("GET /payments", () => {
     it("returns all payments", async () => {
       const payments = [
-        { id: 1, order_id: 1, amount: 100, payment_method: "card", payment_status: "Completed" },
-        { id: 2, order_id: 2, amount: 200, payment_method: "upi", payment_status: "Pending" },
+        {
+          id: 1,
+          order_id: 1,
+          amount: 100,
+          payment_method: "card",
+          payment_status: "Completed",
+        },
+        {
+          id: 2,
+          order_id: 2,
+          amount: 200,
+          payment_method: "upi",
+          payment_status: "Pending",
+        },
       ];
       const builder = createQueryBuilderFactory();
       mockSupabase.from.mockImplementation(() => builder(payments));
@@ -115,7 +154,13 @@ describe("Payments API", () => {
 
   describe("GET /payments/:id", () => {
     it("returns a payment by id", async () => {
-      const payment = { id: 1, order_id: 1, amount: 100, payment_method: "card", payment_status: "Completed" };
+      const payment = {
+        id: 1,
+        order_id: 1,
+        amount: 100,
+        payment_method: "card",
+        payment_status: "Completed",
+      };
       const builder = createQueryBuilderFactory();
       mockSupabase.from.mockImplementation(() => builder(payment));
 
@@ -128,13 +173,24 @@ describe("Payments API", () => {
 
   describe("POST /payments", () => {
     it("creates a payment", async () => {
-      const newPayment = [{ id: 3, order_id: 1, amount: 100, payment_method: "card", payment_status: "Pending" }];
+      const newPayment = [
+        {
+          id: 3,
+          order_id: 1,
+          amount: 100,
+          payment_method: "card",
+          payment_status: "Pending",
+        },
+      ];
       const builder = createQueryBuilderFactory();
       mockSupabase.from.mockImplementation(() => builder(newPayment));
 
-      const res = await request(app)
-        .post("/payments")
-        .send({ order_id: 1, amount: 100, payment_method: "card", payment_status: "Pending" });
+      const res = await request(app).post("/payments").send({
+        order_id: 1,
+        amount: 100,
+        payment_method: "card",
+        payment_status: "Pending",
+      });
 
       expect(res.status).toBe(201);
       expect(res.body).toEqual({
@@ -146,13 +202,23 @@ describe("Payments API", () => {
 
   describe("PUT /payments/:id", () => {
     it("updates a payment", async () => {
-      const updated = [{ id: 1, order_id: 1, amount: 150, payment_method: "upi", payment_status: "Completed" }];
+      const updated = [
+        {
+          id: 1,
+          order_id: 1,
+          amount: 150,
+          payment_method: "upi",
+          payment_status: "Completed",
+        },
+      ];
       const builder = createQueryBuilderFactory();
       mockSupabase.from.mockImplementation(() => builder(updated));
 
-      const res = await request(app)
-        .put("/payments/1")
-        .send({ amount: 150, payment_method: "upi", payment_status: "Completed" });
+      const res = await request(app).put("/payments/1").send({
+        amount: 150,
+        payment_method: "upi",
+        payment_status: "Completed",
+      });
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({

@@ -11,6 +11,24 @@ const app = require("../../server");
 const mockSupabase = require("../../config/supabase");
 const { createQueryBuilderFactory } = require("../helpers/supabaseMock");
 
+function mockAdmin(fromImplementation) {
+  mockSupabase.auth.getUser.mockResolvedValue({
+    data: { user: { id: "admin-id", email: "admin@example.com" } },
+    error: null,
+  });
+  const builder = createQueryBuilderFactory();
+  mockSupabase.from.mockImplementation((table, ...args) => {
+    if (table === "profiles") {
+      return builder({ user_id: "admin-id", role: "admin" });
+    }
+    return fromImplementation(table, ...args);
+  });
+}
+
+function asAdmin(req) {
+  return req.set("Authorization", "Bearer admin-token");
+}
+
 describe("Admin Auth API", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -25,7 +43,7 @@ describe("Admin Auth API", () => {
 
       const builder = createQueryBuilderFactory();
       mockSupabase.from.mockImplementation(() =>
-        builder({ id: 1, user_id: "auth-123", role: "admin", name: "Admin" })
+        builder({ id: 1, user_id: "auth-123", role: "admin", name: "Admin" }),
       );
 
       const res = await request(app)
@@ -46,7 +64,7 @@ describe("Admin Auth API", () => {
 
       const builder = createQueryBuilderFactory();
       mockSupabase.from.mockImplementation(() =>
-        builder({ id: 2, user_id: "auth-456", role: "user" })
+        builder({ id: 2, user_id: "auth-456", role: "user" }),
       );
 
       const res = await request(app)
@@ -70,7 +88,7 @@ describe("Dashboard API", () => {
     it("returns aggregate store stats", async () => {
       const builder = createQueryBuilderFactory();
       let callCount = 0;
-      mockSupabase.from.mockImplementation(() => {
+      mockAdmin(() => {
         callCount++;
         if (callCount === 1) return builder([{ id: 1 }, { id: 2 }]);
         if (callCount === 2) return builder([{ id: 1 }, { id: 2 }, { id: 3 }]);
@@ -78,7 +96,7 @@ describe("Dashboard API", () => {
         return builder([]);
       });
 
-      const res = await request(app).get("/dashboard/stats");
+      const res = await asAdmin(request(app).get("/dashboard/stats"));
 
       expect(res.status).toBe(200);
       expect(res.body.total_orders).toBe(2);
@@ -90,11 +108,13 @@ describe("Dashboard API", () => {
   describe("GET /dashboard/revenue-analytics", () => {
     it("returns revenue analytics", async () => {
       const builder = createQueryBuilderFactory();
-      mockSupabase.from.mockImplementation(() =>
-        builder([{ amount: 100, payment_method: "card", payment_status: "completed" }])
+      mockAdmin(() =>
+        builder([
+          { amount: 100, payment_method: "card", payment_status: "completed" },
+        ]),
       );
 
-      const res = await request(app).get("/dashboard/revenue-analytics");
+      const res = await asAdmin(request(app).get("/dashboard/revenue"));
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty("total_revenue");
@@ -106,14 +126,24 @@ describe("Dashboard API", () => {
   describe("GET /dashboard/order-analytics", () => {
     it("returns order analytics", async () => {
       const builder = createQueryBuilderFactory();
-      mockSupabase.from.mockImplementation(() =>
+      mockAdmin(() =>
         builder([
-          { id: 1, total_amount: 100, status: "Placed", created_at: "2024-01-01" },
-          { id: 2, total_amount: 200, status: "Shipped", created_at: "2024-01-02" },
-        ])
+          {
+            id: 1,
+            total_amount: 100,
+            status: "Placed",
+            created_at: "2024-01-01",
+          },
+          {
+            id: 2,
+            total_amount: 200,
+            status: "Shipped",
+            created_at: "2024-01-02",
+          },
+        ]),
       );
 
-      const res = await request(app).get("/dashboard/order-analytics");
+      const res = await asAdmin(request(app).get("/dashboard/orders"));
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty("total_orders");
@@ -124,15 +154,15 @@ describe("Dashboard API", () => {
   describe("GET /dashboard/inventory-analytics", () => {
     it("returns inventory analytics", async () => {
       const builder = createQueryBuilderFactory();
-      mockSupabase.from.mockImplementation(() =>
+      mockAdmin(() =>
         builder([
           { id: 1, stock_quantity: 50, price: 10 },
           { id: 2, stock_quantity: 3, price: 5 },
           { id: 3, stock_quantity: 0, price: 8 },
-        ])
+        ]),
       );
 
-      const res = await request(app).get("/dashboard/inventory-analytics");
+      const res = await asAdmin(request(app).get("/dashboard/inventory"));
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty("total_stock");
@@ -149,15 +179,36 @@ describe("Low Stock API", () => {
   describe("GET /low-stock", () => {
     it("returns products below threshold", async () => {
       const builder = createQueryBuilderFactory();
-      mockSupabase.from.mockImplementation(() =>
+      mockAdmin(() =>
         builder([
-          { id: 1, product_name: "Pencil", stock_quantity: 3, price: 5, category_id: 1, image_url: null },
-          { id: 2, product_name: "Eraser", stock_quantity: 0, price: 8, category_id: 1, image_url: null },
-          { id: 3, product_name: "Pen", stock_quantity: 50, price: 10, category_id: 1, image_url: null },
-        ])
+          {
+            id: 1,
+            product_name: "Pencil",
+            stock_quantity: 3,
+            price: 5,
+            category_id: 1,
+            image_url: null,
+          },
+          {
+            id: 2,
+            product_name: "Eraser",
+            stock_quantity: 0,
+            price: 8,
+            category_id: 1,
+            image_url: null,
+          },
+          {
+            id: 3,
+            product_name: "Pen",
+            stock_quantity: 50,
+            price: 10,
+            category_id: 1,
+            image_url: null,
+          },
+        ]),
       );
 
-      const res = await request(app).get("/low-stock");
+      const res = await asAdmin(request(app).get("/low-stock"));
 
       expect(res.status).toBe(200);
       expect(res.body.count).toBe(2);
@@ -169,15 +220,16 @@ describe("Low Stock API", () => {
     it("restocks a product", async () => {
       const builder = createQueryBuilderFactory();
       let callCount = 0;
-      mockSupabase.from.mockImplementation(() => {
+      mockAdmin(() => {
         callCount++;
-        if (callCount === 1) return builder({ id: 1, stock_quantity: 5, product_name: "Pencil" });
+        if (callCount === 1)
+          return builder({ id: 1, stock_quantity: 5, product_name: "Pencil" });
         return builder([{ id: 1, stock_quantity: 25, product_name: "Pencil" }]);
       });
 
-      const res = await request(app)
-        .put("/low-stock/1/restock")
-        .send({ quantity: 20 });
+      const res = await asAdmin(
+        request(app).put("/low-stock/1/restock").send({ quantity: 20 }),
+      );
 
       expect(res.status).toBe(200);
       expect(res.body.message).toContain("New stock: 25");
@@ -193,15 +245,33 @@ describe("Reorder API", () => {
   describe("GET /reorder/suggestions", () => {
     it("returns reorder suggestions", async () => {
       const builder = createQueryBuilderFactory();
-      mockSupabase.from.mockImplementation(() =>
+      mockAdmin(() =>
         builder([
-          { id: 1, product_name: "Pencil", price: 5, stock_quantity: 3, category_id: 1 },
-          { id: 2, product_name: "Pen", price: 10, stock_quantity: 50, category_id: 1 },
-          { id: 3, product_name: "Eraser", price: 8, stock_quantity: 0, category_id: 1 },
-        ])
+          {
+            id: 1,
+            product_name: "Pencil",
+            price: 5,
+            stock_quantity: 3,
+            category_id: 1,
+          },
+          {
+            id: 2,
+            product_name: "Pen",
+            price: 10,
+            stock_quantity: 50,
+            category_id: 1,
+          },
+          {
+            id: 3,
+            product_name: "Eraser",
+            price: 8,
+            stock_quantity: 0,
+            category_id: 1,
+          },
+        ]),
       );
 
-      const res = await request(app).get("/reorder/suggestions");
+      const res = await asAdmin(request(app).get("/reorder/suggestions"));
 
       expect(res.status).toBe(200);
       expect(res.body.count).toBeGreaterThan(0);
@@ -213,7 +283,7 @@ describe("Reorder API", () => {
     it("bulk restocks products", async () => {
       const builder = createQueryBuilderFactory();
       let callCount = 0;
-      mockSupabase.from.mockImplementation(() => {
+      mockAdmin(() => {
         callCount++;
         if (callCount === 1) return builder({ id: 1, stock_quantity: 5 });
         if (callCount === 2) return builder([{ id: 1, stock_quantity: 15 }]);
@@ -222,12 +292,46 @@ describe("Reorder API", () => {
         return builder([]);
       });
 
-      const res = await request(app)
-        .post("/reorder/bulk-restock")
-        .send({ items: [{ product_id: 1, quantity: 10 }, { product_id: 2, quantity: 20 }] });
+      const res = await asAdmin(
+        request(app)
+          .post("/reorder/bulk-restock")
+          .send({
+            items: [
+              { product_id: 1, quantity: 10 },
+              { product_id: 2, quantity: 20 },
+            ],
+          }),
+      );
 
       expect(res.status).toBe(200);
       expect(res.body.message).toContain("2 succeeded");
     });
+  });
+});
+
+describe("Admin route protection", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("rejects unauthenticated requests to admin data", async () => {
+    const res = await request(app).get("/dashboard/stats");
+    expect(res.status).toBe(401);
+  });
+
+  it("rejects authenticated non-admin requests to admin data", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({
+      data: { user: { id: "user-id", email: "user@example.com" } },
+      error: null,
+    });
+    const builder = createQueryBuilderFactory();
+    mockSupabase.from.mockImplementation(() =>
+      builder({ user_id: "user-id", role: "user" }),
+    );
+
+    const res = await request(app)
+      .get("/dashboard/stats")
+      .set("Authorization", "Bearer user-token");
+    expect(res.status).toBe(403);
   });
 });

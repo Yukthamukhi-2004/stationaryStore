@@ -1,11 +1,13 @@
 const express = require("express");
+const { requireAdmin } = require("../middleware/requireAdmin");
 
 const router = express.Router();
+router.use(requireAdmin);
 
 const {
   getInventorySummary,
   getLowStockProducts,
-  getReorderProducts
+  getReorderProducts,
 } = require("../controllers/inventoryController");
 
 router.get("/summary", getInventorySummary);

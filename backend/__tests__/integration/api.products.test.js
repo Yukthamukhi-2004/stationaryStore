@@ -2,12 +2,28 @@ const request = require("supertest");
 
 jest.mock("../../config/supabase", () => ({
   from: jest.fn(),
-  auth: {},
+  auth: { getUser: jest.fn() },
 }));
 
 const app = require("../../server");
 const mockSupabase = require("../../config/supabase");
 const { createQueryBuilderFactory } = require("../helpers/supabaseMock");
+
+function mockAdmin(fromImplementation) {
+  mockSupabase.auth.getUser.mockResolvedValue({
+    data: { user: { id: "admin-1", email: "admin@example.com" } },
+    error: null,
+  });
+  const builder = createQueryBuilderFactory();
+  mockSupabase.from.mockImplementation((table, ...args) => {
+    if (table === "profiles") return builder({ role: "admin" });
+    return fromImplementation(table, ...args);
+  });
+}
+
+function withAdminToken(req) {
+  return req.set("Authorization", "Bearer admin-token");
+}
 
 describe("Products API", () => {
   beforeEach(() => {
@@ -17,8 +33,20 @@ describe("Products API", () => {
   describe("GET /products", () => {
     it("returns all products", async () => {
       const products = [
-        { id: 1, product_name: "Pen", price: 10, stock_quantity: 50, category_id: 1 },
-        { id: 2, product_name: "Pencil", price: 5, stock_quantity: 100, category_id: 1 },
+        {
+          id: 1,
+          product_name: "Pen",
+          price: 10,
+          stock_quantity: 50,
+          category_id: 1,
+        },
+        {
+          id: 2,
+          product_name: "Pencil",
+          price: 5,
+          stock_quantity: 100,
+          category_id: 1,
+        },
       ];
       const builder = createQueryBuilderFactory();
       mockSupabase.from.mockImplementation(() => builder(products));
@@ -32,7 +60,7 @@ describe("Products API", () => {
     it("returns 500 on Supabase error", async () => {
       const builder = createQueryBuilderFactory();
       mockSupabase.from.mockImplementation(() =>
-        builder(null, { message: "DB error" })
+        builder(null, { message: "DB error" }),
       );
 
       const res = await request(app).get("/products");
@@ -44,7 +72,13 @@ describe("Products API", () => {
 
   describe("GET /products/:id", () => {
     it("returns a product by id", async () => {
-      const product = { id: 1, product_name: "Pen", price: 10, stock_quantity: 50, category_id: 1 };
+      const product = {
+        id: 1,
+        product_name: "Pen",
+        price: 10,
+        stock_quantity: 50,
+        category_id: 1,
+      };
       const builder = createQueryBuilderFactory();
       mockSupabase.from.mockImplementation(() => builder(product));
 
@@ -67,21 +101,31 @@ describe("Products API", () => {
 
   describe("POST /products", () => {
     it("creates a product", async () => {
-      const newProduct = [{
-        id: 3,
-        category_id: 1,
-        product_name: "Eraser",
-        description: "Rubber eraser",
-        price: 8,
-        stock_quantity: 200,
-        image_url: null,
-      }];
+      const newProduct = [
+        {
+          id: 3,
+          category_id: 1,
+          product_name: "Eraser",
+          description: "Rubber eraser",
+          price: 8,
+          stock_quantity: 200,
+          image_url: null,
+        },
+      ];
       const builder = createQueryBuilderFactory();
-      mockSupabase.from.mockImplementation(() => builder(newProduct));
+      mockAdmin(() => builder(newProduct));
 
-      const res = await request(app)
-        .post("/products")
-        .send({ category_id: 1, product_name: "Eraser", description: "Rubber eraser", price: 8, stock_quantity: 200 });
+      const res = await withAdminToken(
+        request(app)
+          .post("/products")
+          .send({
+            category_id: 1,
+            product_name: "Eraser",
+            description: "Rubber eraser",
+            price: 8,
+            stock_quantity: 200,
+          }),
+      );
 
       expect(res.status).toBe(201);
       expect(res.body).toEqual({
@@ -93,19 +137,23 @@ describe("Products API", () => {
 
   describe("PUT /products/:id", () => {
     it("updates a product", async () => {
-      const updated = [{
-        id: 1,
-        category_id: 1,
-        product_name: "Updated Pen",
-        price: 15,
-        stock_quantity: 80,
-      }];
+      const updated = [
+        {
+          id: 1,
+          category_id: 1,
+          product_name: "Updated Pen",
+          price: 15,
+          stock_quantity: 80,
+        },
+      ];
       const builder = createQueryBuilderFactory();
-      mockSupabase.from.mockImplementation(() => builder(updated));
+      mockAdmin(() => builder(updated));
 
-      const res = await request(app)
-        .put("/products/1")
-        .send({ product_name: "Updated Pen", price: 15 });
+      const res = await withAdminToken(
+        request(app)
+          .put("/products/1")
+          .send({ product_name: "Updated Pen", price: 15 }),
+      );
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({
@@ -118,9 +166,9 @@ describe("Products API", () => {
   describe("DELETE /products/:id", () => {
     it("deletes a product", async () => {
       const builder = createQueryBuilderFactory();
-      mockSupabase.from.mockImplementation(() => builder([]));
+      mockAdmin(() => builder([]));
 
-      const res = await request(app).delete("/products/1");
+      const res = await withAdminToken(request(app).delete("/products/1"));
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ message: "Product Deleted Successfully" });
@@ -151,7 +199,11 @@ describe("Categories API", () => {
 
   describe("GET /categories/:id", () => {
     it("returns a category by id", async () => {
-      const category = { id: 1, name: "Notebooks", description: "Notebooks and diaries" };
+      const category = {
+        id: 1,
+        name: "Notebooks",
+        description: "Notebooks and diaries",
+      };
       const builder = createQueryBuilderFactory();
       mockSupabase.from.mockImplementation(() => builder(category));
 

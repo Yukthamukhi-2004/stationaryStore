@@ -1,4 +1,9 @@
-const { getOrders, createOrder, getOrderById, updateOrder } = require("../controllers/orderController");
+const {
+  getOrders,
+  createOrder,
+  getOrderById,
+  updateOrder,
+} = require("../controllers/orderController");
 
 jest.mock("../config/supabase", () => ({
   from: jest.fn(),
@@ -23,7 +28,7 @@ describe("getOrders", () => {
   beforeEach(resetMocks);
 
   it("returns all orders", async () => {
-    const req = {};
+    const req = { auth: { role: "admin", user: { id: "admin-1" } } };
     const res = mockRes();
     const mockBuilder = createQueryBuilderFactory();
 
@@ -40,7 +45,7 @@ describe("getOrders", () => {
   });
 
   it("returns empty array when no orders exist", async () => {
-    const req = {};
+    const req = { auth: { role: "admin", user: { id: "admin-1" } } };
     const res = mockRes();
     const mockBuilder = createQueryBuilderFactory();
 
@@ -52,12 +57,12 @@ describe("getOrders", () => {
   });
 
   it("returns 500 on Supabase error", async () => {
-    const req = {};
+    const req = { auth: { role: "admin", user: { id: "admin-1" } } };
     const res = mockRes();
     const mockBuilder = createQueryBuilderFactory();
 
     mockSupabase.from.mockImplementation(() =>
-      mockBuilder(null, { message: "DB error" })
+      mockBuilder(null, { message: "DB error" }),
     );
 
     await getOrders(req, res);
@@ -72,12 +77,15 @@ describe("createOrder", () => {
 
   it("creates an order successfully", async () => {
     const req = {
+      auth: { role: "admin", user: { id: "admin-1" } },
       body: { user_id: "user-1", total_amount: 150, status: "Pending" },
     };
     const res = mockRes();
     const mockBuilder = createQueryBuilderFactory();
 
-    const newOrder = [{ id: 1, user_id: "user-1", total_amount: 150, status: "Pending" }];
+    const newOrder = [
+      { id: 1, user_id: "user-1", total_amount: 150, status: "Pending" },
+    ];
     mockSupabase.from.mockImplementation(() => mockBuilder(newOrder));
 
     await createOrder(req, res);
@@ -92,13 +100,14 @@ describe("createOrder", () => {
 
   it("returns 500 on Supabase error", async () => {
     const req = {
+      auth: { role: "admin", user: { id: "admin-1" } },
       body: { user_id: "user-1", total_amount: 150, status: "Pending" },
     };
     const res = mockRes();
     const mockBuilder = createQueryBuilderFactory();
 
     mockSupabase.from.mockImplementation(() =>
-      mockBuilder(null, { message: "Insert failed" })
+      mockBuilder(null, { message: "Insert failed" }),
     );
 
     await createOrder(req, res);
@@ -112,11 +121,19 @@ describe("getOrderById", () => {
   beforeEach(resetMocks);
 
   it("returns an order by id", async () => {
-    const req = { params: { id: "1" } };
+    const req = {
+      auth: { role: "admin", user: { id: "admin-1" } },
+      params: { id: "1" },
+    };
     const res = mockRes();
     const mockBuilder = createQueryBuilderFactory();
 
-    const order = { id: 1, user_id: "user-1", total_amount: 100, status: "Placed" };
+    const order = {
+      id: 1,
+      user_id: "user-1",
+      total_amount: 100,
+      status: "Placed",
+    };
     mockSupabase.from.mockImplementation(() => mockBuilder(order));
 
     await getOrderById(req, res);
@@ -126,12 +143,15 @@ describe("getOrderById", () => {
   });
 
   it("returns 500 on Supabase error", async () => {
-    const req = { params: { id: "999" } };
+    const req = {
+      auth: { role: "admin", user: { id: "admin-1" } },
+      params: { id: "999" },
+    };
     const res = mockRes();
     const mockBuilder = createQueryBuilderFactory();
 
     mockSupabase.from.mockImplementation(() =>
-      mockBuilder(null, { message: "Fetch error" })
+      mockBuilder(null, { message: "Fetch error" }),
     );
 
     await getOrderById(req, res);
@@ -152,7 +172,9 @@ describe("updateOrder", () => {
     const res = mockRes();
     const mockBuilder = createQueryBuilderFactory();
 
-    const updated = [{ id: 1, user_id: "user-1", total_amount: 200, status: "Shipped" }];
+    const updated = [
+      { id: 1, user_id: "user-1", total_amount: 200, status: "Shipped" },
+    ];
     mockSupabase.from.mockImplementation(() => mockBuilder(updated));
 
     await updateOrder(req, res);
@@ -173,7 +195,7 @@ describe("updateOrder", () => {
     const mockBuilder = createQueryBuilderFactory();
 
     mockSupabase.from.mockImplementation(() =>
-      mockBuilder(null, { message: "Update failed" })
+      mockBuilder(null, { message: "Update failed" }),
     );
 
     await updateOrder(req, res);

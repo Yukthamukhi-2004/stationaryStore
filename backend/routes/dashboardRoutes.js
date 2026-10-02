@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { requireAdmin } = require("../middleware/requireAdmin");
 
 const {
   getDashboardStats,
@@ -7,6 +8,8 @@ const {
   getOrderAnalytics,
   getInventoryAnalytics,
 } = require("../controllers/dashboardController");
+
+router.use(requireAdmin);
 
 // Dashboard Statistics
 router.get("/stats", getDashboardStats);

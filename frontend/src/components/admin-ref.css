@@ -1,3 +1,30 @@
+.admin-access-state {
+  min-height: 100vh;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  color: var(--gray-900);
+  background: var(--off-white);
+  text-align: center;
+}
+
+.admin-access-state h1,
+.admin-access-state p {
+  margin: 0;
+}
+
+.admin-access-state p {
+  max-width: 34rem;
+  color: var(--gray-600);
+}
+
+.admin-access-state a,
+.admin-access-state button {
+  color: var(--gray-900);
+}
+
 /* ============================================
    📊 ADMIN REFERENCE-STYLE COMPONENTS
    Inspired by RetailCliQ BI — Navy & Gold Theme
@@ -6,7 +33,12 @@
 /* ─── Dashboard Gradient Header Banner ─── */
 
 .ref-header {
-  background: linear-gradient(135deg, var(--coral-600) 0%, var(--coral-400) 50%, var(--coral-500) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--coral-600) 0%,
+    var(--coral-400) 50%,
+    var(--coral-500) 100%
+  );
   border-radius: var(--radius-lg);
   padding: 1.75rem 2rem;
   margin-bottom: 1.5rem;
@@ -16,7 +48,7 @@
 }
 
 .ref-header::before {
-  content: '';
+  content: "";
   position: absolute;
   top: -50%;
   right: -20%;
@@ -28,7 +60,7 @@
 }
 
 .ref-header::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -30%;
   left: 10%;
@@ -118,7 +150,7 @@
 }
 
 .ref-metric-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -134,14 +166,30 @@
 }
 
 /* Colored top border accents */
-.ref-metric-card.coral::before { background: linear-gradient(90deg, var(--coral-400), var(--coral-300)); }
-.ref-metric-card.teal::before { background: linear-gradient(90deg, var(--teal-400), var(--teal-300)); }
-.ref-metric-card.amber::before { background: linear-gradient(90deg, var(--amber-400), var(--amber-300)); }
-.ref-metric-card.green::before { background: linear-gradient(90deg, #10b981, #34d399); }
-.ref-metric-card.purple::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
-.ref-metric-card.rose::before { background: linear-gradient(90deg, var(--rose-400), #fb7185); }
-.ref-metric-card.blue::before { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
-.ref-metric-card.orange::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.ref-metric-card.coral::before {
+  background: linear-gradient(90deg, var(--coral-400), var(--coral-300));
+}
+.ref-metric-card.teal::before {
+  background: linear-gradient(90deg, var(--teal-400), var(--teal-300));
+}
+.ref-metric-card.amber::before {
+  background: linear-gradient(90deg, var(--amber-400), var(--amber-300));
+}
+.ref-metric-card.green::before {
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+.ref-metric-card.purple::before {
+  background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+}
+.ref-metric-card.rose::before {
+  background: linear-gradient(90deg, var(--rose-400), #fb7185);
+}
+.ref-metric-card.blue::before {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+.ref-metric-card.orange::before {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
 
 .ref-metric-header {
   display: flex;
@@ -160,14 +208,30 @@
   font-size: 1.2rem;
 }
 
-.ref-metric-icon.coral-bg { background: var(--coral-50); }
-.ref-metric-icon.teal-bg { background: var(--teal-50); }
-.ref-metric-icon.amber-bg { background: var(--amber-50); }
-.ref-metric-icon.green-bg { background: #ecfdf5; }
-.ref-metric-icon.purple-bg { background: #f5f3ff; }
-.ref-metric-icon.rose-bg { background: #fff1f2; }
-.ref-metric-icon.blue-bg { background: #eff6ff; }
-.ref-metric-icon.orange-bg { background: #fffbeb; }
+.ref-metric-icon.coral-bg {
+  background: var(--coral-50);
+}
+.ref-metric-icon.teal-bg {
+  background: var(--teal-50);
+}
+.ref-metric-icon.amber-bg {
+  background: var(--amber-50);
+}
+.ref-metric-icon.green-bg {
+  background: #ecfdf5;
+}
+.ref-metric-icon.purple-bg {
+  background: #f5f3ff;
+}
+.ref-metric-icon.rose-bg {
+  background: #fff1f2;
+}
+.ref-metric-icon.blue-bg {
+  background: #eff6ff;
+}
+.ref-metric-icon.orange-bg {
+  background: #fffbeb;
+}
 
 .ref-metric-trend {
   font-size: 0.7rem;
@@ -568,7 +632,9 @@
 }
 
 @keyframes refSpin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .ref-table-dimmed {

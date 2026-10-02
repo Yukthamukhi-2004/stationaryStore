@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { requireAdmin } = require("../middleware/requireAdmin");
 
 const {
   getPurchases,
@@ -8,6 +9,8 @@ const {
   updatePurchase,
   deletePurchase,
 } = require("../controllers/purchaseController");
+
+router.use(requireAdmin);
 
 router.get("/", getPurchases);
 router.get("/:id", getPurchaseById);

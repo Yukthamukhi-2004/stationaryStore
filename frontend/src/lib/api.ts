@@ -1,6 +1,7 @@
 const API_BASE = "/api";
 
 import type { ProductItem } from "../data/products";
+import supabase from "./supabase";
 
 export type Category = {
   id: number;
@@ -73,16 +74,27 @@ export type Payment = {
 };
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   const res = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
     headers: {
       "Content-Type": "application/json",
+      ...(session?.access_token
+        ? { Authorization: `Bearer ${session.access_token}` }
+        : {}),
+      ...options?.headers,
     },
-    ...options,
   });
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(error.error || `Request failed with status ${res.status}`);
+    const requestError = new Error(
+      error.error || `Request failed with status ${res.status}`,
+    ) as Error & { status: number };
+    requestError.status = res.status;
+    throw requestError;
   }
 
   return res.json();
@@ -213,10 +225,21 @@ export type InventoryAnalytics = {
   low_stock_count: number;
   out_of_stock_count: number;
   average_price: number;
-  low_stock_items: { id: number; product_name: string; stock_quantity: number; price: number }[];
+  low_stock_items: {
+    id: number;
+    product_name: string;
+    stock_quantity: number;
+    price: number;
+  }[];
 };
 
 export const api = {
+  async verifyAdmin(token: string): Promise<{ authorized: boolean }> {
+    return request("/admin/verify", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
   // Products
   async getProducts(params?: {
     limit?: number;
@@ -295,9 +318,7 @@ export const api = {
     return request<Cart[]>("/carts");
   },
 
-  async getCartByUserId(
-    user_id: string,
-  ): Promise<Cart> {
+  async getCartByUserId(user_id: string): Promise<Cart> {
     return request<Cart>(`/carts/user/${encodeURIComponent(user_id)}`);
   },
 
@@ -341,10 +362,13 @@ export const api = {
     id: number,
     quantity: number,
   ): Promise<{ message: string; item: CartItemBackend }> {
-    return request<{ message: string; item: CartItemBackend }>(`/cart-items/${id}`, {
-      method: "PUT",
-      body: JSON.stringify({ quantity }),
-    });
+    return request<{ message: string; item: CartItemBackend }>(
+      `/cart-items/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ quantity }),
+      },
+    );
   },
 
   async deleteCartItem(id: number): Promise<{ message: string }> {
@@ -381,9 +405,7 @@ export const api = {
   },
 
   // Profile
-  async getProfile(
-    user_id: string,
-  ): Promise<{
+  async getProfile(user_id: string): Promise<{
     id: number;
     user_id: string;
     email: string | null;
@@ -399,7 +421,10 @@ export const api = {
     user_id: string;
     name?: string | null;
     email?: string | null;
-  }): Promise<{ message: string; profile: { id: number; user_id: string; name: string | null; role: string } }> {
+  }): Promise<{
+    message: string;
+    profile: { id: number; user_id: string; name: string | null; role: string };
+  }> {
     return request("/profile", {
       method: "POST",
       body: JSON.stringify(data),
@@ -428,10 +453,18 @@ export const api = {
   },
 
   // Purchases
-  async getPurchases(params?: { type?: string; dealer_name?: string; date_from?: string; date_to?: string; page?: number; per_page?: number }): Promise<PurchasesResponse> {
+  async getPurchases(params?: {
+    type?: string;
+    dealer_name?: string;
+    date_from?: string;
+    date_to?: string;
+    page?: number;
+    per_page?: number;
+  }): Promise<PurchasesResponse> {
     const searchParams = new URLSearchParams();
     if (params?.type) searchParams.set("type", params.type);
-    if (params?.dealer_name) searchParams.set("dealer_name", params.dealer_name);
+    if (params?.dealer_name)
+      searchParams.set("dealer_name", params.dealer_name);
     if (params?.date_from) searchParams.set("date_from", params.date_from);
     if (params?.date_to) searchParams.set("date_to", params.date_to);
     if (params?.page) searchParams.set("page", String(params.page));
@@ -440,17 +473,25 @@ export const api = {
     return request<PurchasesResponse>(`/purchases${qs ? `?${qs}` : ""}`);
   },
 
-  async getAllPurchasesForExport(params?: { type?: string; dealer_name?: string; date_from?: string; date_to?: string }): Promise<Purchase[]> {
+  async getAllPurchasesForExport(params?: {
+    type?: string;
+    dealer_name?: string;
+    date_from?: string;
+    date_to?: string;
+  }): Promise<Purchase[]> {
     const searchParams = new URLSearchParams();
     if (params?.type) searchParams.set("type", params.type);
-    if (params?.dealer_name) searchParams.set("dealer_name", params.dealer_name);
+    if (params?.dealer_name)
+      searchParams.set("dealer_name", params.dealer_name);
     if (params?.date_from) searchParams.set("date_from", params.date_from);
     if (params?.date_to) searchParams.set("date_to", params.date_to);
     // Fetch up to 10000 records for export
     searchParams.set("per_page", "10000");
     searchParams.set("page", "1");
     const qs = searchParams.toString();
-    const response = await request<PurchasesResponse>(`/purchases${qs ? `?${qs}` : ""}`);
+    const response = await request<PurchasesResponse>(
+      `/purchases${qs ? `?${qs}` : ""}`,
+    );
     return response.data;
   },
 
@@ -471,10 +512,13 @@ export const api = {
     id: number,
     purchase: Partial<PurchaseInput>,
   ): Promise<{ message: string; purchase: Purchase }> {
-    return request<{ message: string; purchase: Purchase }>(`/purchases/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(purchase),
-    });
+    return request<{ message: string; purchase: Purchase }>(
+      `/purchases/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(purchase),
+      },
+    );
   },
 
   async deletePurchase(id: number): Promise<{ message: string }> {
@@ -495,11 +539,17 @@ export const api = {
     return request<LowStockResponse>(`/low-stock${qs}`);
   },
 
-  async restockProduct(id: number, quantity: number): Promise<{ message: string; product: Product }> {
-    return request<{ message: string; product: Product }>(`/low-stock/${id}/restock`, {
-      method: "PUT",
-      body: JSON.stringify({ quantity }),
-    });
+  async restockProduct(
+    id: number,
+    quantity: number,
+  ): Promise<{ message: string; product: Product }> {
+    return request<{ message: string; product: Product }>(
+      `/low-stock/${id}/restock`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ quantity }),
+      },
+    );
   },
 
   // Reorder
@@ -508,7 +558,9 @@ export const api = {
     return request<ReorderResponse>(`/reorder/suggestions${qs}`);
   },
 
-  async bulkRestock(items: { product_id: number; quantity: number }[]): Promise<BulkRestockResponse> {
+  async bulkRestock(
+    items: { product_id: number; quantity: number }[],
+  ): Promise<BulkRestockResponse> {
     return request<BulkRestockResponse>("/reorder/bulk-restock", {
       method: "POST",
       body: JSON.stringify({ items }),
@@ -534,11 +586,17 @@ export const api = {
 
   // Upload
   async uploadImage(file: File, productId?: number): Promise<{ url: string }> {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     const formData = new FormData();
     formData.append("image", file);
     if (productId) formData.append("productId", String(productId));
     const res = await fetch(`${API_BASE}/upload`, {
       method: "POST",
+      headers: session?.access_token
+        ? { Authorization: `Bearer ${session.access_token}` }
+        : undefined,
       body: formData,
     });
     if (!res.ok) {
@@ -570,5 +628,3 @@ export function mapBackendProduct(p: Product, category: string): ProductItem {
     category,
   };
 }
-
-

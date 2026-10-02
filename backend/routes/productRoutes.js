@@ -1,4 +1,5 @@
 const express = require("express");
+const { requireAdmin } = require("../middleware/requireAdmin");
 
 const router = express.Router();
 
@@ -23,10 +24,10 @@ router.get("/sort/price", sortProducts);
 
 router.get("/:id", getProductById);
 
-router.post("/", createProduct);
+router.post("/", requireAdmin, createProduct);
 
-router.put("/:id", updateProduct);
+router.put("/:id", requireAdmin, updateProduct);
 
-router.delete("/:id", deleteProduct);
+router.delete("/:id", requireAdmin, deleteProduct);
 
 module.exports = router;

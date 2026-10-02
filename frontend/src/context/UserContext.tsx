@@ -34,9 +34,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
    * Fetches the profile from the backend to get the user's name.
    */
   const buildAppUser = useCallback(
-    async (
-      authUser: { id: string; email: string | undefined },
-    ): Promise<AppUser> => {
+    async (authUser: {
+      id: string;
+      email: string | undefined;
+    }): Promise<AppUser> => {
       const base = {
         id: authUser.id,
         email: authUser.email ?? "",
@@ -45,7 +46,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // Try to fetch profile from backend for the name
       try {
         const profile = await api.getProfile(authUser.id);
-        return { ...base, name: profile.name ?? authUser.email?.split("@")[0] ?? "User" };
+        return {
+          ...base,
+          name: profile.name ?? authUser.email?.split("@")[0] ?? "User",
+        };
       } catch {
         // No profile yet — use email-based name as fallback
         return {
@@ -60,12 +64,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
   // ── Initial session check + subscribe to auth changes ──
   useEffect(() => {
     // On mount, check for existing session via getSession (handles page refresh)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        buildAppUser(session.user).then(setUser);
-      }
-      setIsLoaded(true);
-    });
+    supabase.auth
+      .getSession()
+      .then(async ({ data: { session } }) => {
+        if (session?.user) {
+          setUser(await buildAppUser(session.user));
+        }
+      })
+      .catch((error) => {
+        console.error("Session restore error:", error);
+      })
+      .finally(() => setIsLoaded(true));
 
     // Listen for auth state changes (sign in, sign out, token refresh)
     // Skip INITIAL_SESSION since getSession above already handles it
