@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, type Variants } from "framer-motion";
-import { api, mapBackendProduct } from "../lib/api";
-import { booksProducts as fallbackProducts } from "../data/products";
+import { getProductsByCategoryNames, mapBackendProduct } from "../lib/api";
 import ProductCard from "../components/ProductCard";
 import PageTransition from "../components/PageTransition";
 import LoadingScribble from "../components/LoadingScribble";
@@ -34,26 +33,37 @@ const headerVariants: Variants = {
   },
 };
 
-const BACKEND_CATEGORY_IDS = [127]; // DB category 127 = Books
+const CATEGORY_NAMES = ["Books"];
 
 export default function BooksPage() {
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
+      setLoading(true);
+      setLoadError(false);
       try {
-        const backendProducts = await api.getProductsByCategory(BACKEND_CATEGORY_IDS[0]);
-        const filtered = backendProducts.map((p) => mapBackendProduct(p, "books"));
-        setProducts(filtered.length > 0 ? filtered : fallbackProducts);
+        const backendProducts =
+          await getProductsByCategoryNames(CATEGORY_NAMES);
+        const filtered = backendProducts.map((p) =>
+          mapBackendProduct(p, "books"),
+        );
+        if (!cancelled) setProducts(filtered);
       } catch {
-        setProducts(fallbackProducts);
+        if (!cancelled) setLoadError(true);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
     load();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [retryCount]);
 
   return (
     <PageTransition>
@@ -64,15 +74,32 @@ export default function BooksPage() {
           initial="hidden"
           animate="visible"
         >
-          <Link to="/shopping/home" className="back-link-top">&larr; Home</Link>
+          <Link to="/shopping/home" className="back-link-top">
+            &larr; Home
+          </Link>
           <h1 className="category-title">Books</h1>
           <p className="category-desc">
-            Novels, textbooks, journals, diaries and more to fuel your imagination.
+            Novels, textbooks, journals, diaries and more to fuel your
+            imagination.
           </p>
         </motion.div>
 
         {loading ? (
           <LoadingScribble text="Turning the pages..." />
+        ) : loadError ? (
+          <div className="error-state" role="alert">
+            <p>Could not load books.</p>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => setRetryCount((count) => count + 1)}
+            >
+              Retry
+            </button>
+          </div>
+        ) : products.length === 0 ? (
+          <p className="loading-state" role="status">
+            No books are available right now.
+          </p>
         ) : (
           <motion.div
             className="products-grid"

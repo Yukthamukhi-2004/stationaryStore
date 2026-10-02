@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import PageTransition from "../components/PageTransition";
 import PasswordInput from "../components/PasswordInput";
-import { useApp } from "../context/useApp";
 import { useUser } from "../context/useUser";
 
 type AuthMode = "sign-in" | "sign-up";
@@ -60,31 +59,9 @@ export default function AuthPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { user, signIn, signUp } = useUser();
-  const { clearCart } = useApp();
   const redirectTarget = (
     location.state as { from?: { pathname?: string; search?: string } } | null
   )?.from;
-
-  const authCompletedRef = useRef(false);
-  const checkoutPending =
-    localStorage.getItem("sarada_checkout_pending") === "1";
-
-  useEffect(() => {
-    if (!checkoutPending) return;
-
-    const cleanup = () => {
-      if (!authCompletedRef.current) {
-        clearCart();
-        localStorage.removeItem("sarada_checkout_pending");
-      }
-    };
-
-    window.addEventListener("beforeunload", cleanup);
-    return () => {
-      cleanup();
-      window.removeEventListener("beforeunload", cleanup);
-    };
-  }, [checkoutPending, clearCart]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,8 +70,6 @@ export default function AuthPage() {
 
     try {
       await signIn(signInEmail.trim(), signInPassword);
-      authCompletedRef.current = true;
-      localStorage.removeItem("sarada_checkout_pending");
       // onAuthStateChange will set the user before or shortly after navigation
       if (redirectTarget?.pathname) {
         navigate(`${redirectTarget.pathname}${redirectTarget.search ?? ""}`);
@@ -131,8 +106,6 @@ export default function AuthPage() {
 
     try {
       await signUp(signUpName.trim(), signUpEmail.trim(), signUpPassword);
-      authCompletedRef.current = true;
-      localStorage.removeItem("sarada_checkout_pending");
       // onAuthStateChange will set the user before or shortly after navigation
       if (redirectTarget?.pathname) {
         navigate(`${redirectTarget.pathname}${redirectTarget.search ?? ""}`);

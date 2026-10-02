@@ -7,8 +7,15 @@ import { api, type Order, type OrderItem, type Payment } from "../lib/api";
 import PageTransition from "../components/PageTransition";
 import UpiQrCode from "../components/UpiQrCode";
 
-type TabType = "cart" | "orders";
+type TabType = "cart" | "checkout" | "orders";
 type CheckoutStep = "address" | "payment";
+
+function getTabFromSearch(search: string): TabType {
+  const params = new URLSearchParams(search);
+  if (params.get("checkout") === "1") return "checkout";
+  const tab = params.get("tab");
+  return tab === "checkout" || tab === "orders" ? tab : "cart";
+}
 
 type DeliveryAddress = {
   fullName: string;
@@ -71,8 +78,6 @@ const PAYMENT_LABELS: Record<string, { icon: string; label: string }> = {
   net_banking: { icon: "🏦", label: "Net Banking" },
 };
 
-const CHECKOUT_PENDING_KEY = "sarada_checkout_pending";
-
 const listVariants: Variants = {
   hidden: {},
   visible: {
@@ -103,7 +108,9 @@ export default function OrdersPage() {
   } = useApp();
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<TabType>("cart");
+  const [activeTab, setActiveTab] = useState<TabType>(() =>
+    getTabFromSearch(location.search),
+  );
 
   // Orders state
   const [orders, setOrders] = useState<Order[]>([]);
@@ -125,6 +132,24 @@ export default function OrdersPage() {
     details: Array<{ name: string; ok: boolean; detail?: string }>;
   } | null>(null);
 
+  const navigateToTab = useCallback(
+    (tab: TabType) => {
+      setActiveTab(tab);
+      setShowCheckout(tab === "checkout");
+      const params = new URLSearchParams(location.search);
+      params.delete("checkout");
+      params.set("tab", tab);
+      navigate(`${location.pathname}?${params.toString()}`, { replace: true });
+    },
+    [location.pathname, location.search, navigate],
+  );
+
+  useEffect(() => {
+    const tab = getTabFromSearch(location.search);
+    setActiveTab(tab);
+    setShowCheckout(tab === "checkout");
+  }, [location.search]);
+
   const shouldResumeCheckout = location.search.includes("checkout=1");
 
   const handleRequireAuth = useCallback(() => {
@@ -142,13 +167,13 @@ export default function OrdersPage() {
   }, [location.pathname, location.search, navigate]);
 
   const handleGuestCheckout = useCallback(() => {
-    localStorage.setItem(CHECKOUT_PENDING_KEY, "1");
     handleRequireAuth();
   }, [handleRequireAuth]);
 
   useEffect(() => {
     if (shouldResumeCheckout) {
       setShowCheckout(true);
+      setActiveTab("checkout");
       setCheckoutStep("address");
     }
   }, [shouldResumeCheckout]);
@@ -196,7 +221,8 @@ export default function OrdersPage() {
     setCodConfirmed(false);
     setCheckoutResult(null);
     setShowCheckout(false);
-  }, []);
+    navigateToTab("cart");
+  }, [navigateToTab]);
 
   // Order items state (expandable)
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
@@ -354,7 +380,7 @@ export default function OrdersPage() {
         <div className="orders-tabs" role="tablist">
           <motion.button
             className={`orders-tab ${activeTab === "cart" ? "active" : ""}`}
-            onClick={() => setActiveTab("cart")}
+            onClick={() => navigateToTab("cart")}
             whileTap={{ scale: 0.95 }}
             role="tab"
             aria-selected={activeTab === "cart"}
@@ -365,13 +391,22 @@ export default function OrdersPage() {
             )}
           </motion.button>
           <motion.button
+            className={`orders-tab ${activeTab === "checkout" ? "active" : ""}`}
+            onClick={() => navigateToTab("checkout")}
+            whileTap={{ scale: 0.95 }}
+            role="tab"
+            aria-selected={activeTab === "checkout"}
+          >
+            Checkout
+          </motion.button>
+          <motion.button
             className={`orders-tab ${activeTab === "orders" ? "active" : ""}`}
-            onClick={() => setActiveTab("orders")}
+            onClick={() => navigateToTab("orders")}
             whileTap={{ scale: 0.95 }}
             role="tab"
             aria-selected={activeTab === "orders"}
           >
-            📦 Orders
+            📦 My Orders
             {orders.length > 0 && (
               <span className="orders-tab-badge">{orders.length}</span>
             )}
@@ -380,13 +415,15 @@ export default function OrdersPage() {
             className="orders-tab-indicator"
             layout
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            style={{ left: activeTab === "cart" ? "0%" : "50%" }}
+            style={{
+              left: `${(["cart", "checkout", "orders"] as TabType[]).indexOf(activeTab) * 33.333}%`,
+            }}
           />
         </div>
 
         <AnimatePresence mode="wait">
-          {/* ========== CART TAB ========== */}
-          {activeTab === "cart" && (
+          {/* ========== CART AND CHECKOUT TABS ========== */}
+          {(activeTab === "cart" || activeTab === "checkout") && (
             <motion.div
               key="cart-tab"
               initial={{ opacity: 0, y: 12 }}
@@ -400,11 +437,15 @@ export default function OrdersPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
               >
-                <h1 className="category-title">Your Cart</h1>
+                <h1 className="category-title">
+                  {activeTab === "checkout" ? "Checkout" : "Your Cart"}
+                </h1>
                 <p className="category-desc">
-                  {cartCount > 0
-                    ? `You have ${cartCount} item${cartCount > 1 ? "s" : ""} in your cart`
-                    : "Your cart is empty"}
+                  {activeTab === "checkout"
+                    ? "Delivery and payment"
+                    : cartCount > 0
+                      ? `You have ${cartCount} item${cartCount > 1 ? "s" : ""} in your cart`
+                      : "Your cart is empty"}
                 </p>
               </motion.div>
 
@@ -424,55 +465,59 @@ export default function OrdersPage() {
               ) : (
                 <>
                   {/* Cart Items */}
-                  <motion.div
-                    className="cart-items"
-                    variants={listVariants}
-                    initial="hidden"
-                    animate="visible"
-                  >
-                    {cart.map((item) => (
-                      <motion.div
-                        key={item.id}
-                        className="cart-item"
-                        variants={itemVariants}
-                      >
-                        <div className="cart-item-image">
-                          <img src={item.image} alt={item.name} />
-                        </div>
-                        <div className="cart-item-info">
-                          <h4>{item.name}</h4>
-                          <p className="cart-item-price">
-                            ₹{item.price.toFixed(2)}
-                          </p>
-                        </div>
-                        <div className="cart-item-qty">
-                          <button
-                            className="qty-btn"
-                            onClick={() => updateQuantity(item.id, -1)}
-                          >
-                            −
-                          </button>
-                          <span className="qty-value">{item.quantity}</span>
-                          <button
-                            className="qty-btn"
-                            onClick={() => updateQuantity(item.id, 1)}
-                          >
-                            +
-                          </button>
-                        </div>
-                        <div className="cart-item-total">
-                          ₹{(item.price * item.quantity).toFixed(2)}
-                        </div>
-                        <button
-                          className="cart-item-remove"
-                          onClick={() => removeFromCart(item.id)}
-                          aria-label={`Remove ${item.name}`}
+                  {activeTab === "cart" && (
+                    <motion.div
+                      className="cart-items"
+                      variants={listVariants}
+                      initial="hidden"
+                      animate="visible"
+                    >
+                      {cart.map((item) => (
+                        <motion.div
+                          key={item.id}
+                          className="cart-item"
+                          variants={itemVariants}
                         >
-                          ✕
-                        </button>
-                      </motion.div>
-                    ))}
-                  </motion.div>
+                          <div className="cart-item-image">
+                            <img src={item.image} alt={item.name} />
+                          </div>
+                          <div className="cart-item-info">
+                            <h4>{item.name}</h4>
+                            <p className="cart-item-price">
+                              ₹{item.price.toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="cart-item-qty">
+                            <button
+                              className="qty-btn"
+                              aria-label={`Decrease ${item.name} quantity`}
+                              onClick={() => updateQuantity(item.productId, -1)}
+                            >
+                              −
+                            </button>
+                            <span className="qty-value">{item.quantity}</span>
+                            <button
+                              className="qty-btn"
+                              aria-label={`Increase ${item.name} quantity`}
+                              onClick={() => updateQuantity(item.productId, 1)}
+                            >
+                              +
+                            </button>
+                          </div>
+                          <div className="cart-item-total">
+                            ₹{(item.price * item.quantity).toFixed(2)}
+                          </div>
+                          <button
+                            className="cart-item-remove"
+                            onClick={() => removeFromCart(item.productId)}
+                            aria-label={`Remove ${item.name}`}
+                          >
+                            ✕
+                          </button>
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                  )}
 
                   {/* Checkout Result */}
                   {checkoutResult && (
@@ -739,7 +784,7 @@ export default function OrdersPage() {
                               <div className="checkout-nav">
                                 <button
                                   className="btn btn-link"
-                                  onClick={() => setShowCheckout(false)}
+                                  onClick={() => navigateToTab("cart")}
                                 >
                                   ← Back to cart
                                 </button>
@@ -1093,7 +1138,7 @@ export default function OrdersPage() {
                               handleGuestCheckout();
                               return;
                             }
-                            setShowCheckout(true);
+                            navigateToTab("checkout");
                           }}
                         >
                           Proceed to Checkout
@@ -1114,7 +1159,7 @@ export default function OrdersPage() {
             </motion.div>
           )}
 
-          {/* ========== ORDERS TAB ========== */}
+          {/* ========== MY ORDERS TAB ========== */}
           {activeTab === "orders" && (
             <motion.div
               key="orders-tab"

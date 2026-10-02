@@ -3,7 +3,6 @@ import { AnimatePresence } from "framer-motion";
 
 // ── Shopping (User) Layout & Pages ──
 import ShoppingLayout from "./components/ShoppingLayout";
-import LandingPage from "./pages/LandingPage";
 import HomePage from "./pages/HomePage";
 import AuthPage from "./pages/AuthPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -13,6 +12,7 @@ import BooksPage from "./pages/BooksPage";
 import ArtMaterialsPage from "./pages/ArtMaterialsPage";
 import OrdersPage from "./pages/OrdersPage";
 import ContactPage from "./pages/ContactPage";
+import ProductDetailPage from "./pages/ProductDetailPage";
 
 // ── Admin Layout & Pages ──
 import AdminRoute from "./components/AdminRoute";
@@ -34,8 +34,11 @@ export default function App() {
         {/* ═══════════════════════════════════════════════
            PUBLIC — Landing page (default entry point)
            ═══════════════════════════════════════════════ */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/landing" element={<Navigate to="/" replace />} />
+        <Route path="/" element={<Navigate to="/shopping/home" replace />} />
+        <Route
+          path="/landing"
+          element={<Navigate to="/shopping/home" replace />}
+        />
 
         {/* ═══════════════════════════════════════════════
            🛍️ SHOPPING — User-facing store experience
@@ -44,6 +47,7 @@ export default function App() {
           {/* Redirect /shopping to /shopping/home */}
           <Route index element={<Navigate to="/shopping/home" replace />} />
           <Route path="home" element={<HomePage />} />
+          <Route path="products/:productId" element={<ProductDetailPage />} />
           <Route path="notebooks" element={<NotebooksPage />} />
           <Route path="accessories" element={<AccessoriesPage />} />
           <Route path="books" element={<BooksPage />} />

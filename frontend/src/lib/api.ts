@@ -252,6 +252,11 @@ export const api = {
     return request<Product[]>(`/products${qs ? `?${qs}` : ""}`);
   },
 
+  async searchProducts(name: string): Promise<Product[]> {
+    const searchParams = new URLSearchParams({ name });
+    return request<Product[]>(`/products/search?${searchParams.toString()}`);
+  },
+
   async getProduct(id: number): Promise<Product> {
     return request<Product>(`/products/${id}`);
   },
@@ -615,6 +620,25 @@ export const api = {
     return request<Category>(`/categories/${id}`);
   },
 };
+
+export async function getProductsByCategoryNames(
+  categoryNames: string[],
+): Promise<Product[]> {
+  const requestedNames = new Set(
+    categoryNames.map((name) => name.trim().toLocaleLowerCase()),
+  );
+  const categories = await api.getCategories();
+  const matchingCategories = categories.filter((category) =>
+    requestedNames.has(category.name.trim().toLocaleLowerCase()),
+  );
+
+  const productGroups = await Promise.all(
+    matchingCategories.map((category) =>
+      api.getProductsByCategory(category.id),
+    ),
+  );
+  return productGroups.flat();
+}
 
 /** Map a backend Product to the frontend ProductItem format used by ProductCard */
 export function mapBackendProduct(p: Product, category: string): ProductItem {

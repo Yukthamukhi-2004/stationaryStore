@@ -434,6 +434,9 @@ export default function ProfilePage() {
               transition={{ delay: 0.3, duration: 0.35 }}
             >
               <h2>Favourites ({favoriteItems.length})</h2>
+              <p className="profile-favorites-note">
+                Saved on this device for your account.
+              </p>
               <div className="details-grid">
                 {favoriteItems.map((id) => (
                   <div key={id} className="detail-item">

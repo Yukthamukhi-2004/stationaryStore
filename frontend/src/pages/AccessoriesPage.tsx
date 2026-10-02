@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, type Variants } from "framer-motion";
-import { api, mapBackendProduct } from "../lib/api";
-import { accessoriesProducts as fallbackProducts } from "../data/products";
+import { getProductsByCategoryNames, mapBackendProduct } from "../lib/api";
 import ProductCard from "../components/ProductCard";
 import PageTransition from "../components/PageTransition";
 import LoadingScribble from "../components/LoadingScribble";
@@ -34,28 +33,42 @@ const headerVariants: Variants = {
   },
 };
 
-const BACKEND_CATEGORY_IDS = [1, 4, 5]; // DB categories: 1=Pens, 4=Office Supplies, 5=School Essentials
+const CATEGORY_NAMES = [
+  "Pens",
+  "Accessories",
+  "Office Supplies",
+  "School Essentials",
+];
 
 export default function AccessoriesPage() {
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
+      setLoading(true);
+      setLoadError(false);
       try {
-        const backendProducts = (
-          await Promise.all(BACKEND_CATEGORY_IDS.map((id) => api.getProductsByCategory(id)))
-        ).flat();
-        const filtered = backendProducts.map((p) => mapBackendProduct(p, "accessories"));
-        setProducts(filtered.length > 0 ? filtered : fallbackProducts);
+        const backendProducts =
+          await getProductsByCategoryNames(CATEGORY_NAMES);
+        const filtered = backendProducts.map((p) =>
+          mapBackendProduct(p, "accessories"),
+        );
+        if (!cancelled) setProducts(filtered);
       } catch {
-        setProducts(fallbackProducts);
+        if (!cancelled) setLoadError(true);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
     load();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [retryCount]);
 
   return (
     <PageTransition>
@@ -66,7 +79,9 @@ export default function AccessoriesPage() {
           initial="hidden"
           animate="visible"
         >
-          <Link to="/shopping/home" className="back-link-top">&larr; Home</Link>
+          <Link to="/shopping/home" className="back-link-top">
+            &larr; Home
+          </Link>
           <h1 className="category-title">Accessories</h1>
           <p className="category-desc">
             Pens, pencils, erasers, and all the essentials for your desk.
@@ -75,6 +90,20 @@ export default function AccessoriesPage() {
 
         {loading ? (
           <LoadingScribble text="Sharpening pencils..." />
+        ) : loadError ? (
+          <div className="error-state" role="alert">
+            <p>Could not load accessories.</p>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => setRetryCount((count) => count + 1)}
+            >
+              Retry
+            </button>
+          </div>
+        ) : products.length === 0 ? (
+          <p className="loading-state" role="status">
+            No accessories are available right now.
+          </p>
         ) : (
           <motion.div
             className="products-grid"

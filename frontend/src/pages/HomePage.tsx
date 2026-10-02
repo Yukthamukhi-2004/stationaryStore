@@ -35,7 +35,9 @@ const categoryRouteMap: Record<string, { path: string; emoji: string }> = {
   "School Essentials": { path: "/shopping/accessories", emoji: "🎒" },
 };
 
-const staticCategories = [{ name: "Books", emoji: "📚", path: "/shopping/books" }];
+const staticCategories = [
+  { name: "Books", emoji: "📚", path: "/shopping/books" },
+];
 
 const containerVariants: Variants = {
   hidden: {},
@@ -242,20 +244,6 @@ export default function HomePage() {
           </motion.div>
         </motion.section>
 
-        {/* Doodle Illustrations */}
-        <motion.section variants={itemVariants}>
-          <motion.h2
-            className="section-title"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.4 }}
-          >
-            Doodle Corner
-          </motion.h2>
-          <DoodleIllustrations />
-        </motion.section>
-
         {/* Categories Section — Sketch Style */}
         <motion.section
           id="shop-by-category"
@@ -299,6 +287,20 @@ export default function HomePage() {
               </motion.div>
             ))}
           </motion.div>
+        </motion.section>
+
+        {/* Doodle Illustrations */}
+        <motion.section variants={itemVariants}>
+          <motion.h2
+            className="section-title"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.4 }}
+          >
+            Doodle Corner
+          </motion.h2>
+          <DoodleIllustrations />
         </motion.section>
 
         {/* Features Section */}

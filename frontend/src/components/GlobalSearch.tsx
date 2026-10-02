@@ -1,29 +1,25 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  notebookProducts,
-  accessoriesProducts,
-  booksProducts,
-  artMaterialsProducts,
-  type ProductItem,
-} from "../data/products";
-
-const allProducts: (ProductItem & { categoryLabel: string })[] = [
-  ...notebookProducts.map((p) => ({ ...p, categoryLabel: "Notebooks" })),
-  ...accessoriesProducts.map((p) => ({ ...p, categoryLabel: "Accessories" })),
-  ...booksProducts.map((p) => ({ ...p, categoryLabel: "Books" })),
-  ...artMaterialsProducts.map((p) => ({
-    ...p,
-    categoryLabel: "Art Materials",
-  })),
-];
+import { api, mapBackendProduct, type Product } from "../lib/api";
+import type { ProductItem } from "../data/products";
 
 const categoryRoutes: Record<string, string> = {
   notebooks: "/shopping/notebooks",
   accessories: "/shopping/accessories",
   books: "/shopping/books",
   "art-materials": "/shopping/art-materials",
+};
+
+const categorySlugs: Record<string, string> = {
+  notebooks: "notebooks",
+  books: "books",
+  accessories: "accessories",
+  pens: "accessories",
+  "office supplies": "accessories",
+  "school essentials": "accessories",
+  "art supplies": "art-materials",
+  "art materials": "art-materials",
 };
 
 const INITIAL_VISIBLE = 4;
@@ -34,6 +30,9 @@ export default function GlobalSearch() {
   const [suggestions, setSuggestions] = useState<
     (ProductItem & { categoryLabel: string })[]
   >([]);
+  const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [retryToken, setRetryToken] = useState(0);
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [highlightIdx, setHighlightIdx] = useState(-1);
@@ -42,31 +41,69 @@ export default function GlobalSearch() {
   const listRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  // Debounced filtering
+  // Debounced search against live products and category data.
   useEffect(() => {
-    if (query.trim().length < MIN_QUERY_LENGTH) {
-      setSuggestions([]);
-      setOpen(false);
-      setExpanded(false);
-      setHighlightIdx(-1);
-      return;
-    }
+    const q = query.trim();
+    if (q.length < MIN_QUERY_LENGTH) return;
 
-    const q = query.trim().toLowerCase();
+    let cancelled = false;
+
     const timer = setTimeout(() => {
-      const matches = allProducts.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.categoryLabel.toLowerCase().includes(q),
-      );
-      setSuggestions(matches);
-      setOpen(matches.length > 0);
-      setExpanded(false);
-      setHighlightIdx(-1);
+      void (async () => {
+        try {
+          const [nameMatches, categories] = await Promise.all([
+            api.searchProducts(q),
+            api.getCategories(),
+          ]);
+          const matchingCategories = categories.filter((category) =>
+            category.name.toLowerCase().includes(q.toLowerCase()),
+          );
+          const categoryMatches = await Promise.all(
+            matchingCategories.map((category) =>
+              api.getProductsByCategory(category.id),
+            ),
+          );
+
+          if (cancelled) return;
+
+          const productsById = new Map<number, Product>();
+          for (const product of nameMatches)
+            productsById.set(product.id, product);
+          for (const product of categoryMatches.flat()) {
+            productsById.set(product.id, product);
+          }
+
+          const categoryNames = new Map(
+            categories.map((category) => [category.id, category.name]),
+          );
+          const matches = Array.from(productsById.values()).map((product) => {
+            const categoryLabel =
+              categoryNames.get(product.category_id ?? -1) ?? "Other";
+            const category = categorySlugs[categoryLabel.toLowerCase()] ?? "";
+            return {
+              ...mapBackendProduct(product, category),
+              categoryLabel,
+            };
+          });
+
+          setSuggestions(matches);
+          setOpen(true);
+        } catch {
+          if (cancelled) return;
+          setSuggestions([]);
+          setSearchError("Search failed. Try again.");
+          setOpen(true);
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      })();
     }, 200);
 
-    return () => clearTimeout(timer);
-  }, [query]);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query, retryToken]);
 
   // Close on click outside
   useEffect(() => {
@@ -86,7 +123,7 @@ export default function GlobalSearch() {
     ? suggestions
     : suggestions.slice(0, INITIAL_VISIBLE);
 
-  const remainingCount = suggestions.length - INITIAL_VISIBLE;
+  const remainingCount = Math.max(0, suggestions.length - INITIAL_VISIBLE);
 
   const select = useCallback(
     (product: ProductItem & { categoryLabel: string }) => {
@@ -114,8 +151,37 @@ export default function GlobalSearch() {
     }
   };
 
+  const handleQueryChange = (nextQuery: string) => {
+    setQuery(nextQuery);
+    if (nextQuery.trim().length < MIN_QUERY_LENGTH) {
+      setSuggestions([]);
+      setLoading(false);
+      setSearchError(null);
+      setOpen(false);
+      setExpanded(false);
+      setHighlightIdx(-1);
+      return;
+    }
+
+    setLoading(true);
+    setSearchError(null);
+    setSuggestions([]);
+    setOpen(true);
+    setExpanded(false);
+    setHighlightIdx(-1);
+  };
+
+  const handleRetry = () => {
+    setLoading(true);
+    setSearchError(null);
+    setSuggestions([]);
+    setExpanded(false);
+    setHighlightIdx(-1);
+    setRetryToken((token) => token + 1);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!open) return;
+    if (!open || loading || searchError || suggestions.length === 0) return;
 
     switch (e.key) {
       case "ArrowDown":
@@ -151,9 +217,9 @@ export default function GlobalSearch() {
           className="global-search-input"
           placeholder="Search products…"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => handleQueryChange(e.target.value)}
           onFocus={() => {
-            if (suggestions.length > 0) setOpen(true);
+            if (query.trim()) setOpen(true);
           }}
           onKeyDown={handleKeyDown}
           aria-label="Search products"
@@ -170,9 +236,7 @@ export default function GlobalSearch() {
           <button
             className="global-search-clear"
             onClick={() => {
-              setQuery("");
-              setSuggestions([]);
-              setOpen(false);
+              handleQueryChange("");
               inputRef.current?.focus();
             }}
             aria-label="Clear search"
@@ -183,62 +247,88 @@ export default function GlobalSearch() {
       </div>
 
       <AnimatePresence>
-        {open && suggestions.length > 0 && (
+        {open && query.trim().length >= MIN_QUERY_LENGTH && (
           <motion.div
             className="global-search-dropdown"
             id="search-suggestions"
-            role="listbox"
             initial={{ opacity: 0, y: -6, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.96 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
           >
-            <div className="global-search-dropdown-header">
-              {expanded
-                ? `All suggestions (${suggestions.length})`
-                : `Suggestions (${suggestions.length})`}
-            </div>
-            <div
-              className={`global-search-list ${expanded ? "expanded" : ""}`}
-              ref={listRef}
-            >
-              {visibleSuggestions.map((product, idx) => (
-                <button
-                  key={product.id}
-                  id={`search-option-${idx}`}
-                  role="option"
-                  aria-selected={idx === highlightIdx}
-                  className={`global-search-item ${idx === highlightIdx ? "highlighted" : ""} ${expanded ? "compact" : ""}`}
-                  onClick={() => select(product)}
-                  onMouseEnter={() => setHighlightIdx(idx)}
-                >
-                  <span className="gsi-image">
-                    <img src={product.image} alt={product.name} />
-                  </span>
-                  <span className="gsi-info">
-                    <span className="gsi-name">{product.name}</span>
-                    <span className="gsi-meta">
-                      <span className="gsi-category">
-                        {product.categoryLabel}
-                      </span>
-                      <span className="gsi-price">
-                        ₹{product.price.toFixed(2)}
-                      </span>
-                    </span>
-                  </span>
-                </button>
-              ))}
-            </div>
-            {remainingCount > 0 && (
-              <button
-                className="global-search-see-more"
-                onClick={handleToggleExpand}
-                type="button"
+            {loading ? (
+              <div className="global-search-state" role="status">
+                Searching products...
+              </div>
+            ) : searchError ? (
+              <div
+                className="global-search-state global-search-state--error"
+                role="alert"
               >
-                {expanded
-                  ? `See less ↑`
-                  : `See more (${remainingCount} remaining) ↓`}
-              </button>
+                <span>{searchError}</span>
+                <button
+                  className="global-search-retry"
+                  type="button"
+                  onClick={handleRetry}
+                >
+                  Retry
+                </button>
+              </div>
+            ) : suggestions.length === 0 ? (
+              <div className="global-search-state" role="status">
+                No products found.
+              </div>
+            ) : (
+              <>
+                <div className="global-search-dropdown-header">
+                  {expanded
+                    ? `All suggestions (${suggestions.length})`
+                    : `Suggestions (${suggestions.length})`}
+                </div>
+                <div
+                  className={`global-search-list ${expanded ? "expanded" : ""}`}
+                  ref={listRef}
+                  role="listbox"
+                >
+                  {visibleSuggestions.map((product, idx) => (
+                    <button
+                      key={product.id}
+                      id={`search-option-${idx}`}
+                      role="option"
+                      aria-selected={idx === highlightIdx}
+                      className={`global-search-item ${idx === highlightIdx ? "highlighted" : ""} ${expanded ? "compact" : ""}`}
+                      onClick={() => select(product)}
+                      onMouseEnter={() => setHighlightIdx(idx)}
+                    >
+                      <span className="gsi-image">
+                        <img src={product.image} alt={product.name} />
+                      </span>
+                      <span className="gsi-info">
+                        <span className="gsi-name">{product.name}</span>
+                        <span className="gsi-meta">
+                          <span className="gsi-category">
+                            {product.categoryLabel}
+                          </span>
+                          <span className="gsi-price">
+                            ₹{product.price.toFixed(2)}
+                          </span>
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {remainingCount > 0 && (
+                  <button
+                    className="global-search-see-more"
+                    onClick={handleToggleExpand}
+                    type="button"
+                  >
+                    {expanded
+                      ? `See less ↑`
+                      : `See more (${remainingCount} remaining) ↓`}
+                  </button>
+                )}
+              </>
             )}
           </motion.div>
         )}

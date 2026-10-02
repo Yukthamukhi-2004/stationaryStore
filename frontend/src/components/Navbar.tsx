@@ -13,7 +13,7 @@ const shopCategories = [
 ];
 
 export default function Navbar() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { cartCount, cartTotal } = useApp();
   const [shopOpen, setShopOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -21,6 +21,12 @@ export default function Navbar() {
   const shopDropdownRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => pathname === path;
+  const orderTab =
+    new URLSearchParams(search).get("checkout") === "1"
+      ? "checkout"
+      : (new URLSearchParams(search).get("tab") ?? "cart");
+  const isOrdersTabActive = (tab: string) =>
+    pathname === "/shopping/orders" && orderTab === tab;
   const isAuthPage = pathname === "/shopping/auth";
   const isShopPage =
     pathname.startsWith("/shopping/notebooks") ||
@@ -176,11 +182,23 @@ export default function Navbar() {
             Contact
           </Link>
           <Link
-            to="/shopping/orders"
-            className={`nav-link nav-orders ${isActive("/shopping/orders") ? "active" : ""}`}
+            to="/shopping/orders?tab=cart"
+            className={`nav-link nav-orders ${isOrdersTabActive("cart") ? "active" : ""}`}
           >
-            Orders
+            Cart
             {cartCount > 0 && <span className="order-badge">{cartCount}</span>}
+          </Link>
+          <Link
+            to="/shopping/orders?tab=checkout"
+            className={`nav-link ${isOrdersTabActive("checkout") ? "active" : ""}`}
+          >
+            Checkout
+          </Link>
+          <Link
+            to="/shopping/orders?tab=orders"
+            className={`nav-link ${isOrdersTabActive("orders") ? "active" : ""}`}
+          >
+            My Orders
           </Link>
           <Link
             to="/shopping/profile"
@@ -228,13 +246,25 @@ export default function Navbar() {
                 ))}
               </div>
               <Link
-                to="/shopping/orders"
-                className={`navbar-mobile-link ${isActive("/shopping/orders") ? "active" : ""}`}
+                to="/shopping/orders?tab=cart"
+                className={`navbar-mobile-link ${isOrdersTabActive("cart") ? "active" : ""}`}
               >
-                📦 Orders{" "}
+                🛒 Cart{" "}
                 {cartCount > 0 && (
                   <span className="mobile-badge">{cartCount}</span>
                 )}
+              </Link>
+              <Link
+                to="/shopping/orders?tab=checkout"
+                className={`navbar-mobile-link ${isOrdersTabActive("checkout") ? "active" : ""}`}
+              >
+                Checkout
+              </Link>
+              <Link
+                to="/shopping/orders?tab=orders"
+                className={`navbar-mobile-link ${isOrdersTabActive("orders") ? "active" : ""}`}
+              >
+                📦 My Orders
               </Link>
               <Link
                 to="/shopping/profile"

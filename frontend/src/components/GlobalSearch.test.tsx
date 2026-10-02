@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import GlobalSearch from "./GlobalSearch";
+import { api, type Product } from "../lib/api";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -9,6 +10,21 @@ const mockNavigate = vi.fn();
 
 vi.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
+}));
+
+vi.mock("../lib/api", () => ({
+  api: {
+    searchProducts: vi.fn(),
+    getCategories: vi.fn(),
+    getProductsByCategory: vi.fn(),
+  },
+  mapBackendProduct: (product: Product, category: string) => ({
+    id: product.id,
+    name: product.product_name,
+    price: product.price,
+    image: product.image_url ?? "",
+    category,
+  }),
 }));
 
 // Strip animation props — return children directly so inner content renders
@@ -29,6 +45,116 @@ vi.mock("framer-motion", () => {
     AnimatePresence: ({ children }: { children: unknown }) => children ?? null,
   };
 });
+
+const categories = [
+  { id: 1, name: "Accessories", created_at: "" },
+  { id: 2, name: "Notebooks", created_at: "" },
+  { id: 3, name: "Art Materials", created_at: "" },
+  { id: 127, name: "Books", created_at: "" },
+];
+
+const products: Product[] = [
+  {
+    id: 101,
+    category_id: 2,
+    product_name: "Single Ruled Book",
+    description: null,
+    price: 45,
+    stock_quantity: 20,
+    image_url: null,
+    created_at: "",
+  },
+  {
+    id: 102,
+    category_id: 2,
+    product_name: "Double Ruled Book",
+    description: null,
+    price: 50,
+    stock_quantity: 20,
+    image_url: null,
+    created_at: "",
+  },
+  {
+    id: 103,
+    category_id: 2,
+    product_name: "Plain Pages Book",
+    description: null,
+    price: 40,
+    stock_quantity: 20,
+    image_url: null,
+    created_at: "",
+  },
+  {
+    id: 104,
+    category_id: 2,
+    product_name: "Long Book",
+    description: null,
+    price: 60,
+    stock_quantity: 20,
+    image_url: null,
+    created_at: "",
+  },
+  {
+    id: 105,
+    category_id: 2,
+    product_name: "Short Book",
+    description: null,
+    price: 35,
+    stock_quantity: 20,
+    image_url: null,
+    created_at: "",
+  },
+  {
+    id: 201,
+    category_id: 1,
+    product_name: "Marker",
+    description: null,
+    price: 30,
+    stock_quantity: 20,
+    image_url: null,
+    created_at: "",
+  },
+  {
+    id: 202,
+    category_id: 1,
+    product_name: "Pencil",
+    description: null,
+    price: 10,
+    stock_quantity: 20,
+    image_url: null,
+    created_at: "",
+  },
+  {
+    id: 203,
+    category_id: 1,
+    product_name: "Geometry Box",
+    description: null,
+    price: 85,
+    stock_quantity: 20,
+    image_url: null,
+    created_at: "",
+  },
+  {
+    id: 301,
+    category_id: 127,
+    product_name: "Novels",
+    description: null,
+    price: 250,
+    stock_quantity: 20,
+    image_url: null,
+    created_at: "",
+  },
+  {
+    id: 401,
+    category_id: 3,
+    product_name: "Crayons",
+    description: null,
+    price: 45,
+    stock_quantity: 20,
+    image_url: null,
+    created_at: "",
+  },
+];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -64,6 +190,19 @@ function getSeeLess() {
 
 beforeEach(() => {
   mockNavigate.mockReset();
+  vi.mocked(api.searchProducts)
+    .mockReset()
+    .mockImplementation(async (name) =>
+      products.filter((product) =>
+        product.product_name.toLowerCase().includes(name.toLowerCase()),
+      ),
+    );
+  vi.mocked(api.getCategories).mockReset().mockResolvedValue(categories);
+  vi.mocked(api.getProductsByCategory)
+    .mockReset()
+    .mockImplementation(async (categoryId) =>
+      products.filter((product) => product.category_id === categoryId),
+    );
 });
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -106,8 +245,47 @@ describe("GlobalSearch — input threshold (1+ characters)", () => {
   it("shows no suggestions when typing 1+ characters with no match", async () => {
     const { user } = setup();
     await typeQuery(user, "Zz");
-    await new Promise((r) => setTimeout(r, 400));
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "No products found.",
+      );
+    });
     expect(getSuggestions()).toHaveLength(0);
+  });
+
+  it("shows a loading state while the search API is pending", async () => {
+    let resolveSearch!: (matches: Product[]) => void;
+    vi.mocked(api.searchProducts).mockReturnValue(
+      new Promise((resolve) => {
+        resolveSearch = resolve;
+      }),
+    );
+    const { user } = setup();
+    await typeQuery(user, "marker");
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Searching products...",
+    );
+    resolveSearch([products[5]]);
+    await waitFor(() => expect(getSuggestions()).toHaveLength(1));
+  });
+
+  it("retries a failed search request", async () => {
+    vi.mocked(api.searchProducts)
+      .mockRejectedValueOnce(new Error("request failed"))
+      .mockResolvedValueOnce([products[5]]);
+    const { user } = setup();
+    await typeQuery(user, "marker");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Search failed. Try again.",
+    );
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+
+    await waitFor(() => {
+      expect(api.searchProducts).toHaveBeenCalledTimes(2);
+      expect(getSuggestions()).toHaveLength(1);
+    });
   });
 
   it("resets suggestions when input is cleared", async () => {

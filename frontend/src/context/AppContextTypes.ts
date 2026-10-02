@@ -10,11 +10,13 @@ export type CartItem = {
 
 export type AppContextType = {
   cart: CartItem[];
+  cartError: string | null;
   favorites: Set<number>;
   addToCart: (item: CartItem) => void;
-  removeFromCart: (id: string) => void;
-  updateQuantity: (id: string, delta: number) => void;
+  removeFromCart: (productId: number) => void;
+  updateQuantity: (productId: number, delta: number) => void;
   clearCart: () => void;
+  retryCartAction: () => void;
   cartTotal: number;
   cartCount: number;
   toggleFavorite: (productId: number) => void;

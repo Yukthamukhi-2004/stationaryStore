@@ -78,4 +78,42 @@ describe("OrdersPage guest checkout flow", () => {
       },
     });
   });
+
+  it("shows separate Cart, Checkout, and My Orders destinations", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <OrdersPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("tab", { name: /cart/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /checkout/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /checkout/i }));
+    expect(
+      screen.getByRole("heading", { name: "Checkout" }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /my orders/i }));
+    expect(
+      await screen.findByRole("heading", { name: "Order History" }),
+    ).toBeInTheDocument();
+  });
+
+  it("labels cart quantity controls with the product name", () => {
+    render(
+      <MemoryRouter>
+        <OrdersPage />
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Decrease Notebook quantity" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Increase Notebook quantity" }),
+    ).toBeInTheDocument();
+  });
 });
