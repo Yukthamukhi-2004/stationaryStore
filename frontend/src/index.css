@@ -6197,6 +6197,27 @@ textarea.form-input {
   background: rgba(255, 255, 255, 0.12);
 }
 
+.admin-nav-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 0.45rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.admin-nav-section-label {
+  padding: 0.15rem 0.75rem 0.35rem;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.admin-nav-item-nested {
+  margin-left: 0.35rem;
+}
+
 .admin-nav-icon {
   font-size: 1rem;
   width: 24px;
@@ -6258,6 +6279,15 @@ textarea.form-input {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.admin-sidebar-user-email {
+  max-width: 170px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.68rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-sidebar-signout {
@@ -6401,6 +6431,54 @@ textarea.form-input {
 .admin-mobile-nav-item.active {
   background: var(--coral-50);
   color: var(--coral-400);
+}
+
+.admin-mobile-nav-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 0.45rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--gray-150);
+}
+
+.admin-mobile-nav-section-label {
+  padding: 0.15rem 0.75rem 0.35rem;
+  color: var(--gray-500);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.admin-mobile-nav-item-nested {
+  margin-left: 0.35rem;
+}
+
+.admin-mobile-user {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.7rem 0.75rem;
+  border-bottom: 1px solid var(--gray-150);
+  color: var(--gray-800);
+}
+
+.admin-mobile-user > span {
+  color: var(--gray-500);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-mobile-signout {
+  justify-self: start;
+  margin-top: 0.2rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--rose-500);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 /* ─── Admin Content ─── */
@@ -6861,6 +6939,143 @@ textarea.form-input {
   gap: 0.85rem;
 }
 
+/* Order detail drawer */
+.admin-order-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 700;
+  display: flex;
+  justify-content: flex-end;
+  background: rgb(18 24 32 / 0.48);
+}
+
+.admin-order-drawer {
+  width: min(100%, 540px);
+  height: 100%;
+  overflow-y: auto;
+  padding: 1.5rem;
+  background: var(--white);
+  box-shadow: var(--shadow-xl);
+}
+
+.admin-order-drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--gray-150);
+}
+
+.admin-order-drawer-header h2,
+.admin-order-drawer-header p {
+  margin: 0;
+}
+
+.admin-order-drawer-header h2 {
+  color: var(--gray-900);
+  font-size: 1.25rem;
+}
+
+.admin-order-drawer-header p {
+  margin-top: 0.25rem;
+  color: var(--gray-500);
+  font-size: 0.85rem;
+}
+
+.admin-order-drawer-close {
+  display: grid;
+  flex: 0 0 2.25rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: var(--gray-700);
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.admin-order-overview {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0;
+  padding: 1.1rem 0;
+  border-bottom: 1px solid var(--gray-150);
+}
+
+.admin-order-overview > div {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.75rem;
+}
+
+.admin-order-overview dt {
+  color: var(--gray-500);
+  font-size: 0.82rem;
+}
+
+.admin-order-overview dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--gray-800);
+  font-size: 0.9rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.admin-order-detail-section {
+  padding: 1.15rem 0;
+  border-bottom: 1px solid var(--gray-150);
+}
+
+.admin-order-detail-section h3 {
+  margin: 0 0 0.75rem;
+  color: var(--gray-800);
+  font-size: 0.95rem;
+}
+
+.admin-order-item-list,
+.admin-order-payment-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-order-item-list li,
+.admin-order-payment-list li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--gray-800);
+  font-size: 0.88rem;
+}
+
+.admin-order-item-list li > div,
+.admin-order-payment-list li > div {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.admin-order-item-list li span,
+.admin-order-payment-list li span {
+  color: var(--gray-500);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 600px) {
+  .admin-order-drawer {
+    width: 100%;
+    padding: 1rem;
+  }
+}
+
 /* ─── Image Uploader ─── */
 
 .admin-image-upload {
@@ -6909,8 +7124,10 @@ textarea.form-input {
   width: 100%;
   height: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.4rem;
   padding: 0.5rem;
 }
 
@@ -6946,11 +7163,26 @@ textarea.form-input {
 }
 
 .admin-upload-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   text-align: center;
   font-size: 0.8rem;
   color: var(--gray-500);
   font-weight: 500;
   padding: 0.25rem 0;
+}
+
+.admin-upload-status progress {
+  width: 3.75rem;
+  accent-color: var(--coral-500);
+}
+
+.admin-image-ready {
+  color: var(--teal-600);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 /* ─── Tabs ─── */
@@ -7093,6 +7325,83 @@ textarea.form-input {
   display: flex;
   justify-content: center;
   padding: 1rem 0;
+}
+
+.admin-reorder-quantity {
+  width: 7rem;
+  min-width: 5rem;
+  padding: 0.45rem 0.55rem;
+}
+
+.admin-reorder-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  color: var(--gray-700);
+  font-size: 0.88rem;
+}
+
+.admin-reorder-progress progress {
+  width: 5rem;
+  accent-color: var(--coral-500);
+}
+
+.admin-reorder-confirmation > p {
+  color: var(--gray-600);
+  font-size: 0.9rem;
+}
+
+.admin-reorder-review-list,
+.admin-reorder-outcome-list {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.75rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-reorder-review-list {
+  max-height: 38vh;
+  overflow-y: auto;
+}
+
+.admin-reorder-review-list li,
+.admin-reorder-outcome {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--gray-150);
+  border-radius: var(--radius-sm);
+  color: var(--gray-800);
+  font-size: 0.85rem;
+}
+
+.admin-reorder-outcome > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.admin-reorder-outcome span {
+  color: var(--gray-500);
+  font-size: 0.8rem;
+}
+
+.admin-reorder-outcome.succeeded {
+  border-left: 3px solid var(--teal-500);
+}
+
+.admin-reorder-outcome.failed {
+  border-left: 3px solid var(--rose-400);
+}
+
+.admin-reorder-results > p {
+  margin: 0 0 0.75rem;
+  color: var(--gray-800);
+  font-weight: 600;
 }
 
 /* ─── Purchases ─── */

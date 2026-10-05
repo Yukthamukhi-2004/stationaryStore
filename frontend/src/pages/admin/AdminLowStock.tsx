@@ -9,6 +9,9 @@ export default function AdminLowStock() {
   const [error, setError] = useState<string | null>(null);
   const [threshold, setThreshold] = useState(10);
   const [restocking, setRestocking] = useState<number | null>(null);
+  const [restockQuantities, setRestockQuantities] = useState<
+    Record<number, string>
+  >({});
 
   async function fetchLowStock(t: number) {
     try {
@@ -27,9 +30,13 @@ export default function AdminLowStock() {
   }, [threshold]);
 
   const handleRestock = async (id: number) => {
+    const quantity = Number(restockQuantities[id] ?? "");
+    if (!Number.isSafeInteger(quantity) || quantity < 1) return;
+
     setRestocking(id);
     try {
-      await api.restockProduct(id, 20);
+      await api.restockProduct(id, quantity);
+      setRestockQuantities((current) => ({ ...current, [id]: "" }));
       await fetchLowStock(threshold);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to restock");
@@ -62,7 +69,10 @@ export default function AdminLowStock() {
           <div className="ref-header-content">
             <div className="ref-header-text">
               <h1>⚠️ Low Stock Alerts</h1>
-              <p>Products running low on inventory — {data?.count ?? 0} items below threshold</p>
+              <p>
+                Products running low on inventory — {data?.count ?? 0} items
+                below threshold
+              </p>
             </div>
           </div>
         </div>
@@ -87,7 +97,12 @@ export default function AdminLowStock() {
           <div className="ref-summary-totals">
             <div className="ref-summary-item">
               <span className="ref-summary-label">Items Below Threshold</span>
-              <span className="ref-summary-value" style={{ color: "var(--rose-400)" }}>{data?.count ?? 0}</span>
+              <span
+                className="ref-summary-value"
+                style={{ color: "var(--rose-400)" }}
+              >
+                {data?.count ?? 0}
+              </span>
             </div>
           </div>
         </div>
@@ -122,21 +137,52 @@ export default function AdminLowStock() {
                     <td className="admin-td-id">#{product.id}</td>
                     <td className="admin-td-name">{product.product_name}</td>
                     <td>
-                      <span className={`admin-stock-badge ${product.stock_quantity === 0 ? "out" : "low"}`}>
+                      <span
+                        className={`admin-stock-badge ${product.stock_quantity === 0 ? "out" : "low"}`}
+                      >
                         {product.stock_quantity}
                       </span>
                     </td>
-                    <td className="admin-td-price">₹{product.price.toFixed(2)}</td>
+                    <td className="admin-td-price">
+                      ₹{product.price.toFixed(2)}
+                    </td>
                     <td>
-                      <motion.button
-                        className="btn btn-sm btn-primary"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.97 }}
-                        disabled={restocking === product.id}
-                        onClick={() => handleRestock(product.id)}
-                      >
-                        {restocking === product.id ? "Restocking..." : "Restock (+20)"}
-                      </motion.button>
+                      <div className="admin-inline-edit">
+                        <input
+                          className="form-input"
+                          type="number"
+                          min="1"
+                          step="1"
+                          inputMode="numeric"
+                          aria-label={`Quantity to add for ${product.product_name}`}
+                          value={restockQuantities[product.id] ?? ""}
+                          onChange={(event) =>
+                            setRestockQuantities((current) => ({
+                              ...current,
+                              [product.id]: event.target.value,
+                            }))
+                          }
+                          disabled={restocking === product.id}
+                        />
+                        <motion.button
+                          className="btn btn-sm btn-primary"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.97 }}
+                          aria-label={`Restock ${product.product_name}`}
+                          disabled={
+                            restocking === product.id ||
+                            !Number.isSafeInteger(
+                              Number(restockQuantities[product.id] ?? ""),
+                            ) ||
+                            Number(restockQuantities[product.id] ?? "") < 1
+                          }
+                          onClick={() => handleRestock(product.id)}
+                        >
+                          {restocking === product.id
+                            ? "Restocking..."
+                            : "Restock"}
+                        </motion.button>
+                      </div>
                     </td>
                   </motion.tr>
                 ))}
@@ -148,8 +194,14 @@ export default function AdminLowStock() {
         {data && data.products.length > 0 && (
           <div className="ref-section-card">
             <p className="ref-empty-state">
-              💡 Tip: Click "Restock" to add 20 units to any low stock item. Use the{" "}
-              <a href="/admin/reorder" style={{ color: "var(--coral-400)", textDecoration: "underline" }}>
+              Need to restock multiple products? Use the{" "}
+              <a
+                href="/admin/reorder"
+                style={{
+                  color: "var(--coral-400)",
+                  textDecoration: "underline",
+                }}
+              >
                 Reorder page
               </a>{" "}
               for bulk restocking suggestions.

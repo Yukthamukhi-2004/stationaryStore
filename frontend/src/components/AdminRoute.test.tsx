@@ -69,6 +69,15 @@ describe("AdminRoute", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows access denied when verification returns unauthorized", async () => {
+    mockVerifyAdmin.mockResolvedValue({ authorized: false });
+    renderAdminRoute({ id: "user-1", name: "User", email: "user@example.com" });
+
+    expect(
+      await screen.findByRole("heading", { name: "Admin access required" }),
+    ).toBeInTheDocument();
+  });
+
   it("renders the admin panel after server verification", async () => {
     mockVerifyAdmin.mockResolvedValue({ authorized: true });
     renderAdminRoute({

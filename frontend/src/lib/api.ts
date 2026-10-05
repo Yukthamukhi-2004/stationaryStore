@@ -578,15 +578,15 @@ export const api = {
   },
 
   async getRevenueAnalytics(): Promise<RevenueAnalytics> {
-    return request<RevenueAnalytics>("/dashboard/revenue-analytics");
+    return request<RevenueAnalytics>("/dashboard/revenue");
   },
 
   async getOrderAnalytics(): Promise<OrderAnalytics> {
-    return request<OrderAnalytics>("/dashboard/order-analytics");
+    return request<OrderAnalytics>("/dashboard/orders");
   },
 
   async getInventoryAnalytics(): Promise<InventoryAnalytics> {
-    return request<InventoryAnalytics>("/dashboard/inventory-analytics");
+    return request<InventoryAnalytics>("/dashboard/inventory");
   },
 
   // Upload

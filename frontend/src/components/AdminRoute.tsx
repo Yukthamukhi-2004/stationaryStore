@@ -33,8 +33,8 @@ export default function AdminRoute() {
           complete("denied");
           return;
         }
-        await api.verifyAdmin(session.access_token);
-        complete("allowed");
+        const result = await api.verifyAdmin(session.access_token);
+        complete(result.authorized ? "allowed" : "denied");
       } catch (error) {
         const status = (error as { status?: number }).status;
         complete(status === 401 || status === 403 ? "denied" : "error");
