@@ -38,6 +38,7 @@ function CartSummary() {
     updateQuantity,
     cartError,
     retryCartAction,
+    pendingProductIds,
     isCartOnline,
     favorites,
     toggleFavorite,
@@ -51,12 +52,21 @@ function CartSummary() {
       <div data-testid="favorites">
         {Array.from(favorites).join(",") || "empty"}
       </div>
+      <div data-testid="pending-product">
+        {pendingProductIds.has(123) ? "pending" : "idle"}
+      </div>
       <div>{isCartOnline ? "online" : "offline"}</div>
       {cartError && <div role="alert">{cartError}</div>}
-      <button onClick={() => void addToCart(guestCart[0])}>
+      <button
+        disabled={pendingProductIds.has(123)}
+        onClick={() => void addToCart(guestCart[0])}
+      >
         Add guest item
       </button>
-      <button onClick={() => void updateQuantity(123, 1)}>
+      <button
+        disabled={pendingProductIds.has(123)}
+        onClick={() => void updateQuantity(123, 1)}
+      >
         Increase guest item
       </button>
       <button onClick={retryCartAction}>Retry cart action</button>
@@ -84,6 +94,7 @@ describe("AppProvider guest cart persistence", () => {
 
   it("restores and keeps guest cart through a provider remount", () => {
     localStorage.setItem("sarada_cart", JSON.stringify(guestCart));
+    localStorage.setItem("sarada_cart_owner", "__guest__");
 
     const firstRender = renderCart();
     expect(screen.getByText("123:2")).toBeInTheDocument();
@@ -215,6 +226,174 @@ describe("AppProvider guest cart persistence", () => {
       expect(mockApi.createCartItem).toHaveBeenCalledWith(7, 123, 2);
     });
     expect(await screen.findByText("123:2")).toBeInTheDocument();
+  });
+
+  it("prevents a second add while the first backend write is pending", async () => {
+    let resolveCreate!: (response: { item: Array<{ id: number }> }) => void;
+    const pendingCreate = new Promise<{ item: Array<{ id: number }> }>(
+      (resolve) => {
+        resolveCreate = resolve;
+      },
+    );
+    mockUseUser.mockReturnValue({
+      user: { id: "user-1", email: "a@example.com" },
+      isLoaded: true,
+    });
+    mockApi.getCartByUserId.mockResolvedValue({ id: 7 });
+    mockApi.getCartItemsByCartId.mockResolvedValue([]);
+    mockApi.createCartItem.mockReturnValue(pendingCreate);
+
+    renderCart();
+    await screen.findByText("online");
+    fireEvent.click(screen.getByRole("button", { name: "Add guest item" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("pending-product")).toHaveTextContent(
+        "pending",
+      );
+    });
+    const addButton = screen.getByRole("button", { name: "Add guest item" });
+    expect(addButton).toBeDisabled();
+    fireEvent.click(addButton);
+    expect(mockApi.createCartItem).toHaveBeenCalledTimes(1);
+
+    resolveCreate({ item: [{ id: 88 }] });
+    await waitFor(() => {
+      expect(screen.getByTestId("pending-product")).toHaveTextContent("idle");
+    });
+  });
+
+  it("shows server stock validation feedback after rejecting an add", async () => {
+    const stockError = Object.assign(new Error("Only 0 more available"), {
+      status: 400,
+    });
+    mockUseUser.mockReturnValue({
+      user: { id: "user-1", email: "a@example.com" },
+      isLoaded: true,
+    });
+    mockApi.getCartByUserId.mockResolvedValue({ id: 7 });
+    mockApi.getCartItemsByCartId.mockResolvedValue([]);
+    mockApi.createCartItem.mockRejectedValue(stockError);
+
+    renderCart();
+    await screen.findByText("online");
+    fireEvent.click(screen.getByRole("button", { name: "Add guest item" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Only 0 more available",
+    );
+    expect(screen.getByTestId("cart-items")).toHaveTextContent("empty");
+  });
+
+  it("prevents overlapping quantity updates for the same product", async () => {
+    let resolveUpdate!: () => void;
+    const pendingUpdate = new Promise<void>((resolve) => {
+      resolveUpdate = resolve;
+    });
+    mockUseUser.mockReturnValue({
+      user: { id: "user-1", email: "a@example.com" },
+      isLoaded: true,
+    });
+    mockApi.getCartByUserId.mockResolvedValue({ id: 7 });
+    mockApi.getCartItemsByCartId.mockResolvedValue([
+      {
+        id: 77,
+        cart_id: 7,
+        product_id: 123,
+        quantity: 2,
+        created_at: "",
+        products: {
+          product_name: "Notebook",
+          price: 120,
+          image_url: "",
+        },
+      },
+    ]);
+    mockApi.updateCartItem.mockReturnValue(pendingUpdate);
+
+    renderCart();
+    await screen.findByText("online");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Increase guest item" }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("pending-product")).toHaveTextContent(
+        "pending",
+      );
+    });
+    const increaseButton = screen.getByRole("button", {
+      name: "Increase guest item",
+    });
+    expect(increaseButton).toBeDisabled();
+    fireEvent.click(increaseButton);
+    expect(mockApi.updateCartItem).toHaveBeenCalledTimes(1);
+
+    resolveUpdate();
+    await waitFor(() => {
+      expect(screen.getByTestId("pending-product")).toHaveTextContent("idle");
+    });
+  });
+
+  it("does not merge a signed-out account cart into the next account", async () => {
+    const accountCart = [
+      {
+        id: 77,
+        cart_id: 7,
+        product_id: 123,
+        quantity: 2,
+        created_at: "",
+        products: {
+          product_name: "Notebook",
+          price: 120,
+          image_url: "",
+        },
+      },
+    ];
+    mockApi.getCartByUserId
+      .mockResolvedValueOnce({ id: 7 })
+      .mockResolvedValueOnce({ id: 8 });
+    mockApi.getCartItemsByCartId
+      .mockResolvedValueOnce(accountCart)
+      .mockResolvedValueOnce(accountCart)
+      .mockResolvedValue([]);
+    mockUseUser.mockReturnValue({
+      user: { id: "user-a", email: "a@example.com" },
+      isLoaded: true,
+    });
+
+    const view = renderCart();
+    expect(await screen.findByText("123:2")).toBeInTheDocument();
+
+    mockUseUser.mockReturnValue({ user: null, isLoaded: true });
+    view.rerender(
+      (
+        <AppProvider>
+          <CartSummary />
+        </AppProvider>
+      ) as ReactNode,
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("cart-items")).toHaveTextContent("empty");
+    });
+
+    mockUseUser.mockReturnValue({
+      user: { id: "user-b", email: "b@example.com" },
+      isLoaded: true,
+    });
+    view.rerender(
+      (
+        <AppProvider>
+          <CartSummary />
+        </AppProvider>
+      ) as ReactNode,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("online")).toBeInTheDocument();
+      expect(screen.getByTestId("cart-items")).toHaveTextContent("empty");
+    });
+    expect(mockApi.createCartItem).not.toHaveBeenCalled();
   });
 
   it("rolls back a failed add and retries the backend save", async () => {

@@ -250,16 +250,38 @@ function FallbackIcon({ category }: { category: string }) {
 export default function ProductCard({ product }: { product: ProductItem }) {
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
-  const { addToCart, cart, updateQuantity, toggleFavorite, isFavorite } =
-    useApp();
+  const {
+    addToCart,
+    cart,
+    updateQuantity,
+    toggleFavorite,
+    isFavorite,
+    pendingProductIds,
+  } = useApp();
   const { trigger, fire: fireSparkles } = useSparkles();
   const favored = isFavorite(product.id);
 
   const cartItem = cart.find((i) => i.productId === product.id);
 
   const quantity = cartItem?.quantity ?? 0;
+  const isPending = pendingProductIds.has(product.id);
+  const stock = product.stock_quantity;
+  const stockIsListed = stock !== undefined && stock !== null;
+  const remainingStock = stockIsListed ? Math.max(0, stock - quantity) : null;
+  const isOutOfStock = stockIsListed && stock <= 0;
+  const canIncreaseQuantity = !stockIsListed || quantity < stock;
+  const availability = !stockIsListed
+    ? { label: "Availability not listed", status: "unknown" }
+    : isOutOfStock
+      ? { label: "Out of stock", status: "unavailable" }
+      : remainingStock === 0
+        ? { label: "Stock limit reached", status: "unavailable" }
+        : remainingStock <= 5
+          ? { label: `Only ${remainingStock} left`, status: "low" }
+          : { label: "In stock", status: "available" };
 
   const handleAdd = () => {
+    if (isOutOfStock || !canIncreaseQuantity || isPending) return;
     addToCart({
       id: String(product.id),
       productId: product.id,
@@ -337,6 +359,12 @@ export default function ProductCard({ product }: { product: ProductItem }) {
 
       {/* Price */}
       <p className="product-price">₹{product.price.toFixed(2)}</p>
+      <p
+        className={`product-stock-status ${availability.status}`}
+        role="status"
+      >
+        {availability.label}
+      </p>
 
       {/* Quantity + Add to Cart */}
       <div className="product-actions">
@@ -345,15 +373,21 @@ export default function ProductCard({ product }: { product: ProductItem }) {
             className="btn btn-primary btn-sm btn-select"
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
+            disabled={isOutOfStock || isPending}
             onClick={handleAdd}
           >
-            Add to Cart
+            {isPending
+              ? "Adding..."
+              : isOutOfStock
+                ? "Out of Stock"
+                : "Add to Cart"}
           </motion.button>
         ) : (
           <div className="product-qty-controls">
             <motion.button
               className="qty-btn"
               aria-label={`Decrease ${product.name} quantity`}
+              disabled={isPending}
               whileTap={{ scale: 0.9 }}
               onClick={() => updateQuantity(product.id, -1)}
             >
@@ -363,6 +397,7 @@ export default function ProductCard({ product }: { product: ProductItem }) {
             <motion.button
               className="qty-btn"
               aria-label={`Increase ${product.name} quantity`}
+              disabled={!canIncreaseQuantity || isPending}
               whileTap={{ scale: 0.9 }}
               onClick={() => updateQuantity(product.id, 1)}
             >

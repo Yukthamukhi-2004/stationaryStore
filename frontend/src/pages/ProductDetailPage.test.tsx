@@ -19,7 +19,11 @@ vi.mock("../lib/api", () => ({
 }));
 
 vi.mock("../context/useApp", () => ({
-  useApp: () => ({ cart: [], addToCart: mockAddToCart }),
+  useApp: () => ({
+    cart: [],
+    addToCart: mockAddToCart,
+    pendingProductIds: new Set(),
+  }),
 }));
 
 vi.mock("../components/PageTransition", () => ({

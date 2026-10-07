@@ -1637,6 +1637,29 @@ img {
   color: var(--amber-500);
 }
 
+.product-stock-status {
+  min-height: 1.2em;
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.product-stock-status.available {
+  color: var(--teal-500);
+}
+
+.product-stock-status.low {
+  color: var(--amber-500);
+}
+
+.product-stock-status.unavailable {
+  color: var(--rose-400);
+}
+
+.product-stock-status.unknown {
+  color: var(--gray-500);
+}
+
 .product-actions {
   margin-top: auto;
   width: 100%;
@@ -1686,6 +1709,11 @@ img {
   background: var(--coral-50);
   border-color: var(--coral-400);
   color: var(--coral-400);
+}
+
+.qty-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .qty-value {

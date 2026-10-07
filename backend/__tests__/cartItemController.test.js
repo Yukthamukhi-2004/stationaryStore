@@ -2,6 +2,7 @@ const {
   getCartItems,
   createCartItem,
   getCartItemById,
+  updateCartItem,
 } = require("../controllers/cartItemController");
 
 jest.mock("../config/supabase", () => ({
@@ -61,7 +62,7 @@ describe("getCartItems", () => {
     const mockBuilder = createQueryBuilderFactory();
 
     mockSupabase.from.mockImplementation(() =>
-      mockBuilder(null, { message: "DB error" })
+      mockBuilder(null, { message: "DB error" }),
     );
 
     await getCartItems(req, res);
@@ -98,13 +99,105 @@ describe("createCartItem", () => {
     const mockBuilder = createQueryBuilderFactory();
 
     mockSupabase.from.mockImplementation(() =>
-      mockBuilder(null, { message: "Insert failed" })
+      mockBuilder(null, { message: "Insert failed" }),
     );
 
     await createCartItem(req, res);
 
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ error: "Insert failed" });
+  });
+
+  it("rejects an addition that exceeds remaining product stock", async () => {
+    const req = { body: { cart_id: 1, product_id: 1, quantity: 2 } };
+    const res = mockRes();
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === "products") {
+        return createQueryBuilderFactory()({ id: 1, stock_quantity: 2 });
+      }
+      return createQueryBuilderFactory()([
+        { cart_id: 1, product_id: 1, quantity: 1 },
+      ]);
+    });
+
+    await createCartItem(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      error: "Only 1 more available",
+    });
+    expect(mockSupabase.from).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("updateCartItem stock validation", () => {
+  beforeEach(resetMocks);
+
+  it("rejects an update that would exceed stock across cart rows", async () => {
+    const req = { params: { id: "9" }, body: { quantity: 2 } };
+    const res = mockRes();
+    let cartItemsCalls = 0;
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === "products") {
+        return createQueryBuilderFactory()({ id: 1, stock_quantity: 2 });
+      }
+      cartItemsCalls += 1;
+      if (cartItemsCalls === 1) {
+        return createQueryBuilderFactory()({
+          id: 9,
+          cart_id: 1,
+          product_id: 1,
+          quantity: 1,
+        });
+      }
+      return createQueryBuilderFactory()([
+        { id: 9, cart_id: 1, product_id: 1, quantity: 1 },
+        { id: 10, cart_id: 1, product_id: 1, quantity: 1 },
+      ]);
+    });
+
+    await updateCartItem(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      error: "Only 1 available",
+    });
+    expect(cartItemsCalls).toBe(2);
+  });
+
+  it("allows quantity decreases after stock has been reduced", async () => {
+    const req = { params: { id: "9" }, body: { quantity: 2 } };
+    const res = mockRes();
+    let cartItemsCalls = 0;
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === "products") {
+        return createQueryBuilderFactory()({ id: 1, stock_quantity: 2 });
+      }
+      cartItemsCalls += 1;
+      if (cartItemsCalls === 1) {
+        return createQueryBuilderFactory()({
+          id: 9,
+          cart_id: 1,
+          product_id: 1,
+          quantity: 3,
+        });
+      }
+      if (cartItemsCalls === 2) {
+        return createQueryBuilderFactory()([
+          { id: 9, cart_id: 1, product_id: 1, quantity: 3 },
+        ]);
+      }
+      return createQueryBuilderFactory()([
+        { id: 9, cart_id: 1, product_id: 1, quantity: 2 },
+      ]);
+    });
+
+    await updateCartItem(req, res);
+
+    expect(res.json).toHaveBeenCalledWith({
+      message: "Cart item updated successfully",
+      item: { id: 9, cart_id: 1, product_id: 1, quantity: 2 },
+    });
   });
 });
 
@@ -131,7 +224,7 @@ describe("getCartItemById", () => {
     const mockBuilder = createQueryBuilderFactory();
 
     mockSupabase.from.mockImplementation(() =>
-      mockBuilder(null, { message: "Fetch error" })
+      mockBuilder(null, { message: "Fetch error" }),
     );
 
     await getCartItemById(req, res);

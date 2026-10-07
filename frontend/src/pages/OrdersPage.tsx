@@ -105,6 +105,7 @@ export default function OrdersPage() {
     updateQuantity,
     removeFromCart,
     clearCart,
+    pendingProductIds,
   } = useApp();
 
   // Tab state
@@ -491,6 +492,7 @@ export default function OrdersPage() {
                             <button
                               className="qty-btn"
                               aria-label={`Decrease ${item.name} quantity`}
+                              disabled={pendingProductIds.has(item.productId)}
                               onClick={() => updateQuantity(item.productId, -1)}
                             >
                               −
@@ -499,6 +501,7 @@ export default function OrdersPage() {
                             <button
                               className="qty-btn"
                               aria-label={`Increase ${item.name} quantity`}
+                              disabled={pendingProductIds.has(item.productId)}
                               onClick={() => updateQuantity(item.productId, 1)}
                             >
                               +
@@ -509,6 +512,7 @@ export default function OrdersPage() {
                           </div>
                           <button
                             className="cart-item-remove"
+                            disabled={pendingProductIds.has(item.productId)}
                             onClick={() => removeFromCart(item.productId)}
                             aria-label={`Remove ${item.name}`}
                           >

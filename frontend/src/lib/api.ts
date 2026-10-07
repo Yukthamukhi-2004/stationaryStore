@@ -73,6 +73,23 @@ export type Payment = {
   created_at: string;
 };
 
+async function getResponseErrorMessage(
+  res: Response,
+  fallback: string,
+): Promise<string> {
+  const body: unknown = await res.json().catch(() => null);
+  if (body && typeof body === "object") {
+    const payload = body as { error?: unknown; message?: unknown };
+    if (typeof payload.error === "string" && payload.error) {
+      return payload.error;
+    }
+    if (typeof payload.message === "string" && payload.message) {
+      return payload.message;
+    }
+  }
+  return fallback;
+}
+
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const {
     data: { session },
@@ -89,9 +106,11 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   });
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ error: res.statusText }));
     const requestError = new Error(
-      error.error || `Request failed with status ${res.status}`,
+      await getResponseErrorMessage(
+        res,
+        `Request failed with status ${res.status}`,
+      ),
     ) as Error & { status: number };
     requestError.status = res.status;
     throw requestError;
@@ -605,8 +624,12 @@ export const api = {
       body: formData,
     });
     if (!res.ok) {
-      const error = await res.json().catch(() => ({ error: res.statusText }));
-      throw new Error(error.error || `Upload failed with status ${res.status}`);
+      throw new Error(
+        await getResponseErrorMessage(
+          res,
+          `Upload failed with status ${res.status}`,
+        ),
+      );
     }
     return res.json();
   },
@@ -650,5 +673,6 @@ export function mapBackendProduct(p: Product, category: string): ProductItem {
       p.image_url ||
       `https://placehold.co/200x200/F5F0EB/2c2420?text=${encodeURIComponent(p.product_name)}`,
     category,
+    stock_quantity: p.stock_quantity,
   };
 }

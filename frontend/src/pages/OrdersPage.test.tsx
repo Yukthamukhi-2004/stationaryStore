@@ -40,6 +40,7 @@ vi.mock("../context/useApp", () => ({
     updateQuantity: vi.fn(),
     removeFromCart: vi.fn(),
     clearCart: vi.fn(),
+    pendingProductIds: new Set(),
   }),
 }));
 

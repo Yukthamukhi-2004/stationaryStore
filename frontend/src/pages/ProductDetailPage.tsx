@@ -7,7 +7,7 @@ import PageTransition from "../components/PageTransition";
 
 export default function ProductDetailPage() {
   const { productId } = useParams();
-  const { cart, addToCart } = useApp();
+  const { cart, addToCart, pendingProductIds } = useApp();
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -50,12 +50,13 @@ export default function ProductDetailPage() {
 
   const quantityInCart =
     cart.find((item) => item.productId === product?.id)?.quantity ?? 0;
+  const isPending = product ? pendingProductIds.has(product.id) : false;
   const stock = product?.stock_quantity ?? null;
   const hasStock = stock === null || stock > quantityInCart;
   const maxQuantity = stock === null ? 99 : Math.max(1, stock - quantityInCart);
 
   const handleAddToCart = () => {
-    if (!product || !hasStock || quantity > maxQuantity) return;
+    if (!product || !hasStock || quantity > maxQuantity || isPending) return;
 
     const displayProduct = mapBackendProduct(product, "");
     addToCart({
@@ -123,7 +124,7 @@ export default function ProductDetailPage() {
                   <button
                     className="qty-btn"
                     aria-label={`Decrease ${product.product_name} quantity`}
-                    disabled={quantity <= 1}
+                    disabled={quantity <= 1 || isPending}
                     onClick={() =>
                       setQuantity((value) => Math.max(1, value - 1))
                     }
@@ -136,7 +137,7 @@ export default function ProductDetailPage() {
                   <button
                     className="qty-btn"
                     aria-label={`Increase ${product.product_name} quantity`}
-                    disabled={!hasStock || quantity >= maxQuantity}
+                    disabled={!hasStock || quantity >= maxQuantity || isPending}
                     onClick={() =>
                       setQuantity((value) => Math.min(maxQuantity, value + 1))
                     }
@@ -149,10 +150,10 @@ export default function ProductDetailPage() {
               <motion.button
                 className="btn btn-primary product-detail-add"
                 whileTap={{ scale: 0.98 }}
-                disabled={!hasStock || quantity > maxQuantity}
+                disabled={!hasStock || quantity > maxQuantity || isPending}
                 onClick={handleAddToCart}
               >
-                Add to Cart
+                {isPending ? "Adding..." : "Add to Cart"}
               </motion.button>
             </section>
           </div>

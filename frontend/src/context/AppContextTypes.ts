@@ -11,6 +11,7 @@ export type CartItem = {
 export type AppContextType = {
   cart: CartItem[];
   cartError: string | null;
+  pendingProductIds: ReadonlySet<number>;
   favorites: Set<number>;
   addToCart: (item: CartItem) => void;
   removeFromCart: (productId: number) => void;

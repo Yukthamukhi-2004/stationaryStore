@@ -18,13 +18,15 @@ vi.mock("framer-motion", () => ({
     button: ({
       children,
       onClick,
+      disabled,
       "aria-label": ariaLabel,
     }: {
       children: React.ReactNode;
       onClick?: () => void;
+      disabled?: boolean;
       "aria-label"?: string;
     }) => (
-      <button aria-label={ariaLabel} onClick={onClick}>
+      <button aria-label={ariaLabel} disabled={disabled} onClick={onClick}>
         {children}
       </button>
     ),
@@ -60,6 +62,7 @@ describe("ProductCard cart identity", () => {
         },
       ],
       cartError: null,
+      pendingProductIds: new Set(),
       addToCart: vi.fn(),
       removeFromCart: vi.fn(),
       updateQuantity,
@@ -97,6 +100,7 @@ describe("ProductCard cart identity", () => {
     vi.mocked(useApp).mockReturnValue({
       cart: [],
       cartError: null,
+      pendingProductIds: new Set(),
       addToCart,
       removeFromCart: vi.fn(),
       updateQuantity,
@@ -120,5 +124,77 @@ describe("ProductCard cart identity", () => {
     expect(addToCart).toHaveBeenCalledWith(
       expect.objectContaining({ productId: product.id }),
     );
+  });
+
+  it("shows out-of-stock feedback and prevents adding unavailable products", () => {
+    const addToCart = vi.fn();
+    vi.mocked(useApp).mockReturnValue({
+      cart: [],
+      cartError: null,
+      pendingProductIds: new Set(),
+      addToCart,
+      removeFromCart: vi.fn(),
+      updateQuantity,
+      clearCart: vi.fn(),
+      retryCartAction: vi.fn(),
+      cartTotal: 0,
+      cartCount: 0,
+      favorites: new Set(),
+      toggleFavorite: vi.fn(),
+      isFavorite: () => false,
+      isCartOnline: true,
+    });
+
+    render(
+      <MemoryRouter>
+        <ProductCard product={{ ...product, stock_quantity: 0 }} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("Out of stock");
+    const addButton = screen.getByRole("button", { name: "Out of Stock" });
+    expect(addButton).toBeDisabled();
+    fireEvent.click(addButton);
+    expect(addToCart).not.toHaveBeenCalled();
+  });
+
+  it("reports remaining stock and prevents exceeding it", () => {
+    vi.mocked(useApp).mockReturnValue({
+      cart: [
+        {
+          id: "backend-123",
+          productId: 123,
+          name: "Notebook",
+          price: 120,
+          quantity: 2,
+          image: "",
+          category: "",
+        },
+      ],
+      cartError: null,
+      pendingProductIds: new Set(),
+      addToCart: vi.fn(),
+      removeFromCart: vi.fn(),
+      updateQuantity,
+      clearCart: vi.fn(),
+      retryCartAction: vi.fn(),
+      cartTotal: 240,
+      cartCount: 2,
+      favorites: new Set(),
+      toggleFavorite: vi.fn(),
+      isFavorite: () => false,
+      isCartOnline: true,
+    });
+
+    render(
+      <MemoryRouter>
+        <ProductCard product={{ ...product, stock_quantity: 2 }} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("Stock limit reached");
+    expect(
+      screen.getByRole("button", { name: "Increase Notebook quantity" }),
+    ).toBeDisabled();
   });
 });

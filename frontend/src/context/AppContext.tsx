@@ -11,7 +11,9 @@ import { api } from "../lib/api";
 import type { CartItem } from "./AppContextTypes";
 
 const STORAGE_KEY_CART = "sarada_cart";
+const STORAGE_KEY_CART_OWNER = "sarada_cart_owner";
 const STORAGE_KEY_FAVORITES = "sarada_favorites";
+const GUEST_CART_OWNER = "__guest__";
 const EMPTY_FAVORITES = new Set<number>();
 
 function favoritesStorageKey(userId?: string): string {
@@ -39,6 +41,14 @@ function saveCart(cart: CartItem[]) {
   }
 }
 
+function loadCartOwner(): string | null {
+  try {
+    return localStorage.getItem(STORAGE_KEY_CART_OWNER);
+  } catch {
+    return null;
+  }
+}
+
 function loadFavorites(key: string): Set<number> {
   try {
     const storedFavorites = localStorage.getItem(key);
@@ -59,6 +69,13 @@ function saveFavorites(key: string, favorites: Set<number>) {
   }
 }
 
+function getCartValidationMessage(error: unknown): string | undefined {
+  if (error instanceof Error && "status" in error && error.status === 400) {
+    return error.message;
+  }
+  return undefined;
+}
+
 type CartItemBackendWithProduct = {
   id: number;
   cart_id: number;
@@ -77,15 +94,20 @@ type CartRetryAction =
   | { type: "remove"; productId: number }
   | { type: "update"; productId: number; delta: number }
   | { type: "clear" }
-  | { type: "sync"; userId: string };
+  | { type: "sync"; userId: string; mergeLocalCart: boolean };
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const { user, isLoaded } = useUser();
 
   const [cart, setCart] = useState<CartItem[]>(loadCart);
   const cartRef = useRef(cart);
+  const cartOwnerRef = useRef(loadCartOwner());
   const [cartError, setCartError] = useState<string | null>(null);
   const cartRetryRef = useRef<CartRetryAction | null>(null);
+  const pendingProductIdsRef = useRef<Set<number>>(new Set());
+  const [pendingProductIds, setPendingProductIds] = useState<
+    ReadonlySet<number>
+  >(() => new Set());
   const [favoritesState, setFavoritesState] = useState<{
     key: string | null;
     values: Set<number>;
@@ -117,12 +139,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCartError(null);
   }, []);
 
-  const reportCartError = useCallback((retryAction: CartRetryAction) => {
-    cartRetryRef.current = retryAction;
-    setCartError(
-      "Cart could not be saved. Your previous selection was restored.",
-    );
+  const beginProductMutation = useCallback((productId: number) => {
+    if (pendingProductIdsRef.current.has(productId)) return false;
+    const next = new Set(pendingProductIdsRef.current);
+    next.add(productId);
+    pendingProductIdsRef.current = next;
+    setPendingProductIds(next);
+    return true;
   }, []);
+
+  const endProductMutation = useCallback((productId: number) => {
+    const next = new Set(pendingProductIdsRef.current);
+    next.delete(productId);
+    pendingProductIdsRef.current = next;
+    setPendingProductIds(next);
+  }, []);
+
+  const reportCartError = useCallback(
+    (retryAction: CartRetryAction, message?: string) => {
+      cartRetryRef.current = retryAction;
+      setCartError(
+        message ??
+          "Cart could not be saved. Your previous selection was restored.",
+      );
+    },
+    [],
+  );
 
   const restoreCartItem = useCallback(
     (productId: number, previousItem: CartItem | undefined) => {
@@ -142,14 +184,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   // Backend sync state
-  const [isOnline, setIsOnline] = useState(false);
+  const [onlineCartUserId, setOnlineCartUserId] = useState<string | null>(null);
   const [backendCartId, setBackendCartId] = useState<number | null>(null);
   // Maps product_id → backend cart_item DB id
   const backendItemIdsRef = useRef<Record<number, number>>({});
-  const prevUserRef = useRef<{ id: string; email: string } | null>(null);
+  const activeCartUserRef = useRef<string | null>(null);
+  const cartIsOnline = Boolean(user) && onlineCartUserId === user?.id;
 
   const syncCartOnLogin = useCallback(
-    async (userId: string) => {
+    async (userId: string, mergeLocalCart: boolean) => {
       clearCartError();
       try {
         // 1. Find or create backend cart
@@ -158,15 +201,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const existingCart = await api.getCartByUserId(userId);
           cartId = existingCart.id;
         } catch {
+          if (activeCartUserRef.current !== userId) return;
           // No cart exists — create one
           const { cart } = await api.createCart(userId);
           cartId = cart[0].id;
         }
 
+        if (activeCartUserRef.current !== userId) return;
         setBackendCartId(cartId);
 
         // 2. Get existing backend items
         const backendItems = await api.getCartItemsByCartId(cartId);
+        if (activeCartUserRef.current !== userId) return;
         const backendByProduct: Record<
           number,
           { id: number; quantity: number }
@@ -186,9 +232,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         backendItemIdsRef.current = idMap;
 
         // 4. Merge current in-memory cart into backend
-        const localItems = cartRef.current;
+        const localItems = mergeLocalCart ? cartRef.current : [];
         if (localItems.length > 0) {
           for (const item of localItems) {
+            if (activeCartUserRef.current !== userId) return;
             const existingBackend = backendByProduct[item.productId];
             if (existingBackend) {
               // Update quantity if local has more
@@ -208,14 +255,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
               }
             }
           }
-          // Clear local storage cart after merge
-          localStorage.removeItem(STORAGE_KEY_CART);
         }
+        localStorage.removeItem(STORAGE_KEY_CART);
+        localStorage.removeItem(STORAGE_KEY_CART_OWNER);
 
         // 5. Reload cart from backend
         const allItems = (await api.getCartItemsByCartId(
           cartId,
         )) as CartItemBackendWithProduct[];
+        if (activeCartUserRef.current !== userId) return;
         const idMapAfter: Record<number, number> = {};
         for (const bi of allItems) {
           idMapAfter[bi.product_id] = bi.id;
@@ -234,12 +282,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }));
 
         setCurrentCart(mergedCart);
-        setIsOnline(true);
+        cartOwnerRef.current = userId;
+        setOnlineCartUserId(userId);
         clearCartError();
       } catch (err) {
+        if (activeCartUserRef.current !== userId) return;
         console.warn("Cart sync failed, falling back to local:", err);
-        setIsOnline(false);
-        reportCartError({ type: "sync", userId });
+        setOnlineCartUserId(null);
+        reportCartError({ type: "sync", userId, mergeLocalCart });
       }
     },
     [clearCartError, reportCartError, setCurrentCart],
@@ -250,23 +300,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!isLoaded) return;
 
     if (user) {
+      const owner = cartOwnerRef.current;
+      const mergeLocalCart = owner === GUEST_CART_OWNER || owner === user.id;
+      activeCartUserRef.current = user.id;
+      if (!mergeLocalCart) {
+        setCurrentCart([]);
+        localStorage.removeItem(STORAGE_KEY_CART);
+        localStorage.removeItem(STORAGE_KEY_CART_OWNER);
+      }
+      cartOwnerRef.current = user.id;
+      if (owner !== user.id) {
+        setOnlineCartUserId(null);
+        setBackendCartId(null);
+        backendItemIdsRef.current = {};
+      }
       const doSync = async () => {
-        await syncCartOnLogin(user.id);
+        await syncCartOnLogin(user.id, mergeLocalCart);
       };
       void doSync();
       return;
     }
 
-    // Keep the cart available as a guest cart after sign-out or auth navigation.
-    setIsOnline(false);
-    setBackendCartId(null);
+    activeCartUserRef.current = null;
+    if (cartOwnerRef.current !== GUEST_CART_OWNER) {
+      setCurrentCart([]);
+      localStorage.removeItem(STORAGE_KEY_CART);
+      localStorage.removeItem(STORAGE_KEY_CART_OWNER);
+      cartOwnerRef.current = GUEST_CART_OWNER;
+    }
     backendItemIdsRef.current = {};
-  }, [user, isLoaded, syncCartOnLogin]);
+  }, [user, isLoaded, setCurrentCart, syncCartOnLogin]);
 
   // ── Persist the guest cart and offline cart to localStorage ──
   useEffect(() => {
-    if (!isOnline) saveCart(cart);
-  }, [cart, isOnline]);
+    if (!isLoaded || cartIsOnline || cart !== cartRef.current) return;
+    saveCart(cart);
+    const owner = user?.id ?? GUEST_CART_OWNER;
+    cartOwnerRef.current = owner;
+    try {
+      localStorage.setItem(STORAGE_KEY_CART_OWNER, owner);
+    } catch {
+      /* silently ignore */
+    }
+  }, [cart, cartIsOnline, isLoaded, user]);
 
   // Favorites are device-local and isolated by account.
   useEffect(() => {
@@ -278,53 +354,68 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const addToCart = useCallback(
     async (item: CartItem) => {
+      if (!beginProductMutation(item.productId)) return;
+      const operationUserId = activeCartUserRef.current;
       const previousItem = cartRef.current.find(
         (cartItem) => cartItem.productId === item.productId,
       );
       const nextQuantity = (previousItem?.quantity ?? 0) + item.quantity;
       clearCartError();
 
-      // Update local state immediately (function updater avoids stale closures)
-      setCurrentCart((prev) => {
-        const existing = prev.find((i) => i.productId === item.productId);
-        if (existing) {
-          return prev.map((i) =>
-            i.productId === item.productId
-              ? { ...i, quantity: i.quantity + item.quantity }
-              : i,
-          );
-        }
-        return [...prev, item];
-      });
-
-      // Sync to backend if online (use ref to avoid stale closure)
-      if (isOnline && backendCartId) {
-        try {
-          const existingBackendId = backendItemIdsRef.current[item.productId];
-          if (existingBackendId) {
-            await api.updateCartItem(existingBackendId, nextQuantity);
-          } else {
-            const response = await api.createCartItem(
-              backendCartId,
-              item.productId,
-              item.quantity,
+      try {
+        // Update local state immediately (function updater avoids stale closures)
+        setCurrentCart((prev) => {
+          const existing = prev.find((i) => i.productId === item.productId);
+          if (existing) {
+            return prev.map((i) =>
+              i.productId === item.productId
+                ? { ...i, quantity: i.quantity + item.quantity }
+                : i,
             );
-            if (response.item?.[0]) {
-              backendItemIdsRef.current[item.productId] = response.item[0].id;
-            }
           }
-          clearCartError();
-        } catch (err) {
-          console.warn("Failed to sync cart add to backend:", err);
-          restoreCartItem(item.productId, previousItem);
-          reportCartError({ type: "add", item });
+          return [...prev, item];
+        });
+
+        // Sync to backend if online (use ref to avoid stale closure)
+        if (cartIsOnline && backendCartId) {
+          try {
+            const existingBackendId = backendItemIdsRef.current[item.productId];
+            if (existingBackendId) {
+              await api.updateCartItem(existingBackendId, nextQuantity);
+            } else {
+              const response = await api.createCartItem(
+                backendCartId,
+                item.productId,
+                item.quantity,
+              );
+              if (
+                activeCartUserRef.current === operationUserId &&
+                response.item?.[0]
+              ) {
+                backendItemIdsRef.current[item.productId] = response.item[0].id;
+              }
+            }
+            if (activeCartUserRef.current === operationUserId) clearCartError();
+          } catch (err) {
+            if (activeCartUserRef.current !== operationUserId) return;
+            console.warn("Failed to sync cart add to backend:", err);
+            restoreCartItem(item.productId, previousItem);
+            reportCartError(
+              { type: "add", item },
+              getCartValidationMessage(err),
+            );
+          }
         }
+      } finally {
+        endProductMutation(item.productId);
       }
     },
     [
       backendCartId,
+      beginProductMutation,
       clearCartError,
-      isOnline,
+      cartIsOnline,
+      endProductMutation,
       reportCartError,
       restoreCartItem,
       setCurrentCart,
@@ -333,33 +424,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const removeFromCart = useCallback(
     async (productId: number) => {
+      if (!beginProductMutation(productId)) return;
+      const operationUserId = activeCartUserRef.current;
       const previousItem = cartRef.current.find(
         (item) => item.productId === productId,
       );
       clearCartError();
 
-      // Update local state immediately
-      setCurrentCart((prev) => prev.filter((i) => i.productId !== productId));
+      try {
+        // Update local state immediately
+        setCurrentCart((prev) => prev.filter((i) => i.productId !== productId));
 
-      // Sync to backend if online
-      if (isOnline && productId) {
-        const backendId = backendItemIdsRef.current[productId];
-        if (backendId) {
-          try {
-            await api.deleteCartItem(backendId);
-            delete backendItemIdsRef.current[productId];
-            clearCartError();
-          } catch (err) {
-            console.warn("Failed to sync cart remove to backend:", err);
-            restoreCartItem(productId, previousItem);
-            reportCartError({ type: "remove", productId });
+        // Sync to backend if online
+        if (cartIsOnline && productId) {
+          const backendId = backendItemIdsRef.current[productId];
+          if (backendId) {
+            try {
+              await api.deleteCartItem(backendId);
+              if (activeCartUserRef.current !== operationUserId) return;
+              delete backendItemIdsRef.current[productId];
+              clearCartError();
+            } catch (err) {
+              if (activeCartUserRef.current !== operationUserId) return;
+              console.warn("Failed to sync cart remove to backend:", err);
+              restoreCartItem(productId, previousItem);
+              reportCartError(
+                { type: "remove", productId },
+                getCartValidationMessage(err),
+              );
+            }
           }
         }
+      } finally {
+        endProductMutation(productId);
       }
     },
     [
+      beginProductMutation,
       clearCartError,
-      isOnline,
+      cartIsOnline,
+      endProductMutation,
       reportCartError,
       restoreCartItem,
       setCurrentCart,
@@ -368,60 +472,83 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const updateQuantity = useCallback(
     async (productId: number, delta: number) => {
+      if (!beginProductMutation(productId)) return;
+      const operationUserId = activeCartUserRef.current;
       const item = cartRef.current.find(
         (cartItem) => cartItem.productId === productId,
       );
-      if (!item) return;
+      if (!item) {
+        endProductMutation(productId);
+        return;
+      }
 
       const newQty = Math.max(0, item.quantity + delta);
       clearCartError();
 
-      if (newQty === 0) {
-        // Remove from local state
-        setCurrentCart((prev) => prev.filter((i) => i.productId !== productId));
+      try {
+        if (newQty === 0) {
+          // Remove from local state
+          setCurrentCart((prev) =>
+            prev.filter((i) => i.productId !== productId),
+          );
 
-        // Delete from backend
-        if (isOnline && item) {
-          const backendId = backendItemIdsRef.current[productId];
-          if (backendId) {
-            try {
-              await api.deleteCartItem(backendId);
-              delete backendItemIdsRef.current[productId];
-              clearCartError();
-            } catch (err) {
-              console.warn("Failed to sync quantity update to backend:", err);
-              restoreCartItem(productId, item);
-              reportCartError({ type: "update", productId, delta });
+          // Delete from backend
+          if (cartIsOnline) {
+            const backendId = backendItemIdsRef.current[productId];
+            if (backendId) {
+              try {
+                await api.deleteCartItem(backendId);
+                if (activeCartUserRef.current !== operationUserId) return;
+                delete backendItemIdsRef.current[productId];
+                clearCartError();
+              } catch (err) {
+                if (activeCartUserRef.current !== operationUserId) return;
+                console.warn("Failed to sync quantity update to backend:", err);
+                restoreCartItem(productId, item);
+                reportCartError(
+                  { type: "update", productId, delta },
+                  getCartValidationMessage(err),
+                );
+              }
+            }
+          }
+        } else {
+          // Update local quantity
+          setCurrentCart((prev) =>
+            prev.map((i) =>
+              i.productId === productId ? { ...i, quantity: newQty } : i,
+            ),
+          );
+
+          // Sync to backend
+          if (cartIsOnline) {
+            const backendId = backendItemIdsRef.current[productId];
+            if (backendId) {
+              try {
+                await api.updateCartItem(backendId, newQty);
+                if (activeCartUserRef.current === operationUserId)
+                  clearCartError();
+              } catch (err) {
+                if (activeCartUserRef.current !== operationUserId) return;
+                console.warn("Failed to sync quantity update to backend:", err);
+                restoreCartItem(productId, item);
+                reportCartError(
+                  { type: "update", productId, delta },
+                  getCartValidationMessage(err),
+                );
+              }
             }
           }
         }
-      } else {
-        // Update local quantity
-        setCurrentCart((prev) =>
-          prev.map((i) =>
-            i.productId === productId ? { ...i, quantity: newQty } : i,
-          ),
-        );
-
-        // Sync to backend
-        if (isOnline && item) {
-          const backendId = backendItemIdsRef.current[productId];
-          if (backendId) {
-            try {
-              await api.updateCartItem(backendId, newQty);
-              clearCartError();
-            } catch (err) {
-              console.warn("Failed to sync quantity update to backend:", err);
-              restoreCartItem(productId, item);
-              reportCartError({ type: "update", productId, delta });
-            }
-          }
-        }
+      } finally {
+        endProductMutation(productId);
       }
     },
     [
+      beginProductMutation,
       clearCartError,
-      isOnline,
+      cartIsOnline,
+      endProductMutation,
       reportCartError,
       restoreCartItem,
       setCurrentCart,
@@ -429,9 +556,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const clearCart = useCallback(async () => {
+    if (pendingProductIdsRef.current.size > 0) return;
     clearCartError();
     // Delete all backend items first
-    if (isOnline) {
+    if (cartIsOnline) {
       for (const [productId, backendId] of Object.entries(
         backendItemIdsRef.current,
       )) {
@@ -451,7 +579,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCurrentCart([]);
     localStorage.removeItem(STORAGE_KEY_CART);
     clearCartError();
-  }, [clearCartError, isOnline, reportCartError, setCurrentCart]);
+  }, [cartIsOnline, clearCartError, reportCartError, setCurrentCart]);
 
   const retryCartAction = useCallback(() => {
     const action = cartRetryRef.current;
@@ -472,7 +600,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         void clearCart();
         break;
       case "sync":
-        void syncCartOnLogin(action.userId);
+        void syncCartOnLogin(action.userId, action.mergeLocalCart);
         break;
     }
   }, [
@@ -516,6 +644,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       value={{
         cart,
         cartError,
+        pendingProductIds,
         favorites: currentFavorites,
         addToCart,
         removeFromCart,
@@ -526,7 +655,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         cartCount,
         toggleFavorite,
         isFavorite,
-        isCartOnline: isOnline,
+        isCartOnline: cartIsOnline,
       }}
     >
       {children}
